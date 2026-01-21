@@ -238,7 +238,7 @@ export function isCustomizableSkill(skillDir: string): boolean {
 /**
  * Get the .taito config directory path
  */
-export function gettaitoConfigDir(skillDir: string): string {
+export function getTaitoConfigDir(skillDir: string): string {
   return join(skillDir, '.taito')
 }
 

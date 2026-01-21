@@ -5,12 +5,16 @@ import { buildCommand } from '../src/commands/build.js'
 import { listCommand } from '../src/commands/list.js'
 import { removeCommand } from '../src/commands/remove.js'
 
+// Version is injected at build time via --define
+declare const BUILD_VERSION: string
+const version = typeof BUILD_VERSION !== 'undefined' ? BUILD_VERSION : '1.0.0'
+
 const program = new Command()
 
 program
   .name('taito')
   .description('CLI for installing customizable Agent Skills')
-  .version('0.1.0')
+  .version(version)
 
 program
   .command('add <source>')

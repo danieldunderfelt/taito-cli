@@ -1,28 +1,51 @@
 {
   "name": "taito-cli",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "CLI for installing customizable Agent Skills from GitHub.",
   "type": "module",
-  "bin": {
-    "taito": "./bin/taito.ts"
+  "license": "MIT",
+  "author": "Daniel Dunderfelt <daniel@developsuperpowers.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danieldunderfelt/taito-cli"
   },
+  "keywords": [
+    "cli",
+    "agent-skills",
+    "cursor",
+    "windsurf",
+    "claude-code",
+    "ai-coding",
+    "ai-assistant",
+    "skills",
+    "customizable"
+  ],
+  "bin": {
+    "taito": "./scripts/run.js"
+  },
+  "files": [
+    "dist",
+    "scripts/run.js",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "dev": "bun run bin/taito.ts",
-    "build": "bun build ./bin/taito.ts --outdir ./dist --target node",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@clack/prompts": "^0.9.1",
-    "commander": "^13.1.0",
-    "ejs": "^3.1.10",
-    "smol-toml": "^1.3.1",
-    "tar": "^7.4.3"
+    "build": "bun run scripts/build.ts",
+    "build:local": "bun build --compile ./bin/taito.ts --outfile ./dist/taito",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "bun run build"
   },
   "devDependencies": {
+    "@clack/prompts": "^0.9.1",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
     "@types/bun": "^1.2.4",
     "@types/ejs": "^3.1.5",
+    "commander": "^13.1.0",
+    "ejs": "^3.1.10",
     "prettier": "^3.8.0",
+    "smol-toml": "^1.3.1",
+    "tar": "^7.4.3",
     "typescript": "^5.7.3"
   }
 }

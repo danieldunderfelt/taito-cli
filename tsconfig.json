@@ -14,6 +14,6 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["src/**/*", "bin/**/*"],
-  "exclude": ["node_modules", "dist", "test-skills"]
+  "include": ["src/**/*", "bin/**/*", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "dist", "test-skills", "skills"]
 }

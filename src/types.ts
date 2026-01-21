@@ -130,7 +130,7 @@ export interface InstalledSkill {
 /**
  * Metadata file for tracking installed skills
  */
-export interface taitoMetadata {
+export interface TaitoMetadata {
   version: string
   skills: InstalledSkill[]
 }

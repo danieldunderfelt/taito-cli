@@ -10,10 +10,11 @@ Agent Skills are instructions that AI coding assistants can follow to perform sp
 # Using npm
 npm install -g taito-cli
 
-# Or run directly with npx/bunx/pnpx
+# Or run directly with npx
 npx taito-cli add owner/repo
-bunx taito-cli add owner/repo
 ```
+
+The package includes standalone executables for macOS (Apple Silicon), Linux (x64/arm64), and Windows (x64). No runtime dependencies required.
 
 ## Quick Start
 
