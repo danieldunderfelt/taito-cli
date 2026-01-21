@@ -15,7 +15,3 @@ dist/
 .agents/
 .github/
 .vscode/
-
-# Temporary files
-*.toml
-!test-skills/**/*.toml

@@ -1,0 +1,43 @@
+[meta]
+name = "customizable-skills"
+version = "1.0.0"
+description = "A skill for creating and managing Agent Skills with the Taito CLI"
+
+[variables.PREFERRED_AGENT]
+type = "choice"
+prompt = "Which AI agent do you primarily use?"
+default = "cursor"
+
+  [[variables.PREFERRED_AGENT.options]]
+  value = "cursor"
+  label = "Cursor"
+
+  [[variables.PREFERRED_AGENT.options]]
+  value = "claude-code"
+  label = "Claude Code"
+
+  [[variables.PREFERRED_AGENT.options]]
+  value = "codex"
+  label = "Codex"
+
+  [[variables.PREFERRED_AGENT.options]]
+  value = "opencode"
+  label = "OpenCode"
+
+  [[variables.PREFERRED_AGENT.options]]
+  value = "github-copilot"
+  label = "GitHub Copilot"
+
+  [[variables.PREFERRED_AGENT.options]]
+  value = "gemini"
+  label = "Gemini CLI"
+
+[variables.SKILLS_DIRECTORY]
+type = "string"
+prompt = "Where do you store your skills? (relative path)"
+default = ".cursor/skills"
+
+[variables.FOCUS_AREAS]
+type = "array"
+prompt = "Which topics should be emphasized? (comma-separated: authoring, installing, converting)"
+default = ["authoring", "installing", "converting"]
