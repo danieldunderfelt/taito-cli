@@ -1,5 +1,5 @@
 {
-  "name": "taito",
+  "name": "taito-cli",
   "version": "0.1.0",
   "description": "CLI for installing customizable Agent Skills from GitHub.",
   "type": "module",

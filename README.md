@@ -8,11 +8,11 @@ Agent Skills are instructions that AI coding assistants can follow to perform sp
 
 ```bash
 # Using npm
-npm install -g taito
+npm install -g taito-cli
 
 # Or run directly with npx/bunx/pnpx
-npx taito add owner/repo
-bunx taito add owner/repo
+npx taito-cli add owner/repo
+bunx taito-cli add owner/repo
 ```
 
 ## Quick Start
