@@ -58,7 +58,7 @@ If multiple agents are detected, you'll be prompted to choose which one to insta
 
 ### Standard Skills
 
-For standard (non-customizable) skills, `taito` works just like other skill installers: it downloads the skill from GitHub and copies it to `.cursor/skills/`.
+For standard (non-customizable) skills, `taito` works just like other skill installers: it downloads the skill from GitHub and copies it to the skills directory for your agent.
 
 ### Customizable Skills
 
@@ -67,12 +67,13 @@ When a skill contains a `.taito/` folder, it becomes customizable. During instal
 1. Detect the `.taito/skill.config.toml` configuration file
 2. Prompt you for values (or use a preset config file)
 3. Render templates with your values
-4. Output the customized skill to `.cursor/skills/`
+4. Output the customized skill to the skills directory for your agent
 
 For example, a localization skill might ask:
 
 - What is your source language?
-- Which t() function format do you use?
+- What languages do you support?
+- What format do you use for your translation files?
 - Where are your translation files located?
 
 The resulting `SKILL.md` will contain instructions tailored to your project.
@@ -90,7 +91,7 @@ taito add owner/repo@v1.0.0  # specific tag/branch
 
 # Install for specific agent
 taito add owner/repo --agent cursor
-taito add owner/repo --agent windsurf
+taito add owner/repo --agent opencode
 
 # From local path
 taito add ./path/to/skill
@@ -139,7 +140,7 @@ taito remove react-localization
 
 ### `taito build [path]`
 
-For skill authors: regenerate default files from `.taito/` templates. This will allow the skill to be used with other CLIs that don't support customization.
+For skill authors: generate skill files from `.taito/` templates using default values. This will allow the skill to be used with other CLIs that don't support customization.
 
 ```bash
 # Build in current directory
