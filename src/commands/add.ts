@@ -1,29 +1,37 @@
-import { existsSync, mkdirSync, cpSync, readdirSync, statSync } from "node:fs";
-import { join, resolve } from "node:path";
-import * as p from "@clack/prompts";
 import {
-  parseSkillSource,
-  fetchFromGitHub,
-  cleanupTempDir,
-} from "../lib/github.js";
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+} from 'node:fs'
+import { basename, join, resolve } from 'node:path'
+import * as p from '@clack/prompts'
 import {
-  parseSkillConfig,
   getDefaultValues,
   parsePresetConfig,
-} from "../lib/config.js";
-import { promptForVariables } from "../lib/prompts.js";
-import { renderSkill } from "../lib/render.js";
+  parseSkillConfig,
+} from '../lib/config.js'
+import { discoverSkills } from '../lib/discovery.js'
 import {
-  isCustomizableSkill,
+  cleanupTempDir,
+  fetchFromGitHub,
+  parseSkillSource,
+} from '../lib/github.js'
+import { recordInstalledSkill } from '../lib/metadata.js'
+import {
+  agentConfigs,
+  detectAllAgents,
+  findWorkspaceRoot,
   getSkillConfigPath,
   getSkillOutputDir,
-  findWorkspaceRoot,
-  detectAllAgents,
-  agentConfigs,
+  isCustomizableSkill,
   type AgentType,
-} from "../lib/paths.js";
-import { recordInstalledSkill } from "../lib/metadata.js";
-import type { AddOptions } from "../types.js";
+} from '../lib/paths.js'
+import { clearVariableCache, promptForVariables } from '../lib/prompts.js'
+import { renderSkill } from '../lib/render.js'
+import type { AddOptions, DiscoveredSkill } from '../types.js'
 
 /**
  * Add/install a skill from GitHub or local path
@@ -32,201 +40,266 @@ export async function addCommand(
   source: string,
   options: AddOptions
 ): Promise<void> {
-  const spinner = p.spinner();
+  const spinner = p.spinner()
+
+  // Clear variable cache at start of command
+  clearVariableCache()
 
   try {
     // Parse source
-    const skillSource = parseSkillSource(source, options.ref);
+    const skillSource = parseSkillSource(source, options.ref)
 
-    let skillDir: string;
-    let shouldCleanup = false;
+    let repoDir: string
+    let shouldCleanup = false
 
-    if (skillSource.type === "github") {
-      spinner.start(`Fetching ${source}...`);
-      skillDir = await fetchFromGitHub(skillSource);
-      shouldCleanup = true;
-      spinner.stop(`Fetched ${source}`);
+    if (skillSource.type === 'github') {
+      spinner.start(`Fetching ${source}...`)
+      repoDir = await fetchFromGitHub(skillSource)
+      shouldCleanup = true
+      spinner.stop(`Fetched ${source}`)
     } else {
-      skillDir = resolve(skillSource.path!);
-      if (!existsSync(skillDir)) {
-        p.log.error(`Local path not found: ${skillDir}`);
-        process.exit(1);
+      repoDir = resolve(skillSource.path!)
+      if (!existsSync(repoDir)) {
+        p.log.error(`Local path not found: ${repoDir}`)
+        process.exit(1)
       }
     }
 
     try {
+      // Discover all skills in the repository
+      const discoveredSkills = discoverSkills(repoDir)
+
+      if (discoveredSkills.length === 0) {
+        p.log.error('No skills found in repository')
+        p.log.message('A skill is a directory containing a SKILL.md file.')
+        process.exit(1)
+      }
+
       // Detect or select agent
-      const workspaceRoot = findWorkspaceRoot();
-      let agent: AgentType | undefined;
+      const workspaceRoot = findWorkspaceRoot()
+      let agent: AgentType | undefined
 
       if (options.agent) {
         // Validate specified agent
         if (!(options.agent in agentConfigs)) {
-          p.log.error(`Unknown agent: ${options.agent}`);
+          p.log.error(`Unknown agent: ${options.agent}`)
           p.log.message(
-            `Available agents: ${Object.keys(agentConfigs).join(", ")}`
-          );
-          process.exit(1);
+            `Available agents: ${Object.keys(agentConfigs).join(', ')}`
+          )
+          process.exit(1)
         }
-        agent = options.agent as AgentType;
+        agent = options.agent as AgentType
       } else if (!options.output) {
         // Auto-detect agent if no custom output specified
-        const detectedAgents = detectAllAgents(workspaceRoot);
+        const detectedAgents = detectAllAgents(workspaceRoot)
 
         if (detectedAgents.length === 0) {
-          p.log.warn("No agent detected in workspace. Defaulting to Cursor.");
-          agent = "cursor";
+          p.log.warn('No agent detected in workspace. Defaulting to Cursor.')
+          agent = 'cursor'
         } else if (detectedAgents.length === 1) {
-          agent = detectedAgents[0];
-          p.log.info(`Detected agent: ${agentConfigs[agent].name}`);
+          agent = detectedAgents[0]
+          p.log.info(`Detected agent: ${agentConfigs[agent].name}`)
         } else {
           // Multiple agents detected - ask user
           p.log.info(
             `Multiple agents detected: ${detectedAgents
               .map((a) => agentConfigs[a].name)
-              .join(", ")}`
-          );
+              .join(', ')}`
+          )
 
           const selected = await p.select({
-            message: "Which agent do you want to install the skill for?",
+            message: 'Which agent do you want to install the skill for?',
             options: detectedAgents.map((a) => ({
               value: a,
               label: agentConfigs[a].name,
             })),
-          });
+          })
 
           if (p.isCancel(selected)) {
-            p.cancel("Installation cancelled.");
-            process.exit(0);
+            p.cancel('Installation cancelled.')
+            process.exit(0)
           }
 
-          agent = selected as AgentType;
+          agent = selected as AgentType
         }
       }
-      // Check if customizable
-      const customizable = isCustomizableSkill(skillDir);
-      let skillName: string;
-      let customized = false;
-      let values = {};
 
-      if (customizable) {
-        p.log.info("Customizable skill detected.");
+      // Select which skills to install
+      let skillsToInstall: DiscoveredSkill[]
 
-        // Parse config
-        const configPath = getSkillConfigPath(skillDir);
-        const config = parseSkillConfig(configPath);
-        skillName = config.meta.name;
-
-        // Get values from preset config or prompt user
-        if (options.config) {
-          values = parsePresetConfig(options.config);
-          // Merge with defaults for any missing values
-          const defaults = getDefaultValues(config);
-          values = { ...defaults, ...values };
-        } else {
-          values = await promptForVariables(config);
-        }
-
-        customized = true;
+      if (discoveredSkills.length === 1) {
+        // Single skill - install directly
+        skillsToInstall = discoveredSkills
       } else {
-        // Non-customizable skill - get name from SKILL.md frontmatter
-        skillName = extractSkillName(skillDir);
-        p.log.info(`Installing standard skill: ${skillName}`);
-      }
+        // Multiple skills - prompt user to select
+        const selected = await p.multiselect({
+          message: 'Select skills to install:',
+          options: discoveredSkills.map((s) => ({
+            value: s,
+            label: s.dirName,
+            hint: s.isCustomizable ? 'customizable' : undefined,
+          })),
+          required: true,
+        })
 
-      // Determine output directory
-      const outputDir = options.output
-        ? resolve(options.output)
-        : getSkillOutputDir(skillName, agent, options.global, workspaceRoot);
-
-      // Check if already installed
-      if (existsSync(outputDir) && !options.dryRun) {
-        const overwrite = await p.confirm({
-          message: `Skill '${skillName}' already exists. Overwrite?`,
-          initialValue: false,
-        });
-
-        if (p.isCancel(overwrite) || !overwrite) {
-          p.log.info("Installation cancelled.");
-          return;
+        if (p.isCancel(selected)) {
+          p.cancel('Installation cancelled.')
+          process.exit(0)
         }
+
+        skillsToInstall = selected as DiscoveredSkill[]
       }
 
-      // Render or copy skill
-      spinner.start("Installing skill...");
-
-      let files: string[];
-      if (customizable) {
-        files = await renderSkill(skillDir, outputDir, values, options.dryRun);
-      } else {
-        files = copyStandardSkill(skillDir, outputDir, options.dryRun);
-      }
-
-      spinner.stop("Skill installed!");
-
-      // Record in metadata
-      if (!options.dryRun) {
-        recordInstalledSkill(
-          skillName,
+      // Install each selected skill
+      for (const discoveredSkill of skillsToInstall) {
+        await installSingleSkill(
+          discoveredSkill.path,
           source,
-          customized,
-          customized ? values : undefined,
+          options,
           agent,
-          options.global,
-          workspaceRoot
-        );
-      }
-
-      // Show results
-      const agentName = agent ? agentConfigs[agent].name : "default location";
-      const globalLabel = options.global ? " (global)" : "";
-      p.log.success(`Installed to ${outputDir}`);
-      p.log.message(`Agent: ${agentName}${globalLabel}`);
-      for (const file of files.slice(0, 10)) {
-        p.log.message(`  ${file}`);
-      }
-      if (files.length > 10) {
-        p.log.message(`  ... and ${files.length - 10} more files`);
+          workspaceRoot,
+          spinner
+        )
       }
     } finally {
       // Clean up temp directory if we fetched from GitHub
       if (shouldCleanup) {
-        cleanupTempDir(skillDir);
+        cleanupTempDir(repoDir)
       }
     }
   } catch (error) {
-    spinner.stop("Failed");
-    const err = error as Error;
-    p.log.error(err.message);
-    process.exit(1);
+    spinner.stop('Failed')
+    const err = error as Error
+    p.log.error(err.message)
+    process.exit(1)
   }
 }
 
 /**
- * Extract skill name from SKILL.md frontmatter
+ * Install a single skill
+ */
+async function installSingleSkill(
+  skillDir: string,
+  source: string,
+  options: AddOptions,
+  agent: AgentType | undefined,
+  workspaceRoot: string,
+  spinner: ReturnType<typeof p.spinner>
+): Promise<void> {
+  // Check if customizable
+  const customizable = isCustomizableSkill(skillDir)
+  let skillName: string
+  let customized = false
+  let values = {}
+
+  if (customizable) {
+    p.log.info('Customizable skill detected.')
+
+    // Parse config
+    const configPath = getSkillConfigPath(skillDir)
+    const config = parseSkillConfig(configPath)
+    // Use config.meta.name, fallback to directory name
+    skillName = config.meta.name?.trim() || basename(skillDir)
+
+    // Get values from preset config or prompt user
+    if (options.config) {
+      values = parsePresetConfig(options.config)
+      // Merge with defaults for any missing values
+      const defaults = getDefaultValues(config)
+      values = { ...defaults, ...values }
+    } else {
+      values = await promptForVariables(config)
+    }
+
+    customized = true
+  } else {
+    // Non-customizable skill - get name from SKILL.md frontmatter with fallback
+    skillName = extractSkillName(skillDir)
+    p.log.info(`Installing standard skill: ${skillName}`)
+  }
+
+  // Determine output directory
+  const outputDir = options.output
+    ? resolve(options.output)
+    : getSkillOutputDir(skillName, agent, options.global, workspaceRoot)
+
+  // Check if already installed
+  if (existsSync(outputDir) && !options.dryRun) {
+    const overwrite = await p.confirm({
+      message: `Skill '${skillName}' already exists. Overwrite?`,
+      initialValue: false,
+    })
+
+    if (p.isCancel(overwrite) || !overwrite) {
+      p.log.info(`Skipping installation of '${skillName}'.`)
+      return
+    }
+  }
+
+  // Render or copy skill
+  spinner.start(`Installing ${skillName}...`)
+
+  let files: string[]
+  if (customizable) {
+    files = await renderSkill(skillDir, outputDir, values, options.dryRun)
+  } else {
+    files = copyStandardSkill(skillDir, outputDir, options.dryRun)
+  }
+
+  spinner.stop(`${skillName} installed!`)
+
+  // Record in metadata
+  if (!options.dryRun) {
+    recordInstalledSkill(
+      skillName,
+      source,
+      customized,
+      customized ? values : undefined,
+      agent,
+      options.global,
+      workspaceRoot
+    )
+  }
+
+  // Show results
+  const agentName = agent ? agentConfigs[agent].name : 'default location'
+  const globalLabel = options.global ? ' (global)' : ''
+  p.log.success(`Installed ${skillName} to ${outputDir}`)
+  p.log.message(`Agent: ${agentName}${globalLabel}`)
+  for (const file of files.slice(0, 10)) {
+    p.log.message(`  ${file}`)
+  }
+  if (files.length > 10) {
+    p.log.message(`  ... and ${files.length - 10} more files`)
+  }
+}
+
+/**
+ * Extract skill name from SKILL.md frontmatter with directory name fallback
+ * Priority: frontmatter name → directory name
  */
 function extractSkillName(skillDir: string): string {
-  const skillMdPath = join(skillDir, "SKILL.md");
+  const skillMdPath = join(skillDir, 'SKILL.md')
 
   if (!existsSync(skillMdPath)) {
-    throw new Error("No SKILL.md found in skill directory");
+    // Fallback to directory name if no SKILL.md
+    return basename(skillDir)
   }
 
-  const { readFileSync } = require("node:fs");
-  const content = readFileSync(skillMdPath, "utf-8");
+  const content = readFileSync(skillMdPath, 'utf-8')
 
   // Parse YAML frontmatter
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/)
   if (!frontmatterMatch) {
-    throw new Error("No frontmatter found in SKILL.md");
+    return basename(skillDir) // Fallback
   }
 
-  const nameMatch = frontmatterMatch[1].match(/^name:\s*(.+)$/m);
+  const nameMatch = frontmatterMatch[1].match(/^name:\s*(.+)$/m)
   if (!nameMatch) {
-    throw new Error("No 'name' field found in SKILL.md frontmatter");
+    return basename(skillDir) // Fallback
   }
 
-  return nameMatch[1].trim();
+  return nameMatch[1].trim()
 }
 
 /**
@@ -237,59 +310,59 @@ function copyStandardSkill(
   outputDir: string,
   dryRun: boolean = false
 ): string[] {
-  const files: string[] = [];
+  const files: string[] = []
 
   // Files/directories to copy
-  const toCopy = ["SKILL.md", "scripts", "references", "assets"];
+  const toCopy = ['SKILL.md', 'scripts', 'references', 'assets', 'rules']
 
   for (const item of toCopy) {
-    const srcPath = join(skillDir, item);
+    const srcPath = join(skillDir, item)
 
     if (!existsSync(srcPath)) {
-      continue;
+      continue
     }
 
-    const destPath = join(outputDir, item);
+    const destPath = join(outputDir, item)
 
     if (dryRun) {
-      console.log(`Would copy: ${item}`);
-      files.push(item);
+      console.log(`Would copy: ${item}`)
+      files.push(item)
     } else {
-      mkdirSync(outputDir, { recursive: true });
+      mkdirSync(outputDir, { recursive: true })
 
-      const stat = statSync(srcPath);
+      const stat = statSync(srcPath)
       if (stat.isDirectory()) {
-        cpSync(srcPath, destPath, { recursive: true });
+        cpSync(srcPath, destPath, { recursive: true })
         // List files in directory
-        const dirFiles = listFilesRecursive(destPath, outputDir);
-        files.push(...dirFiles);
+        const dirFiles = listFilesRecursive(destPath, outputDir)
+        files.push(...dirFiles)
       } else {
-        cpSync(srcPath, destPath);
-        files.push(item);
+        cpSync(srcPath, destPath)
+        files.push(item)
       }
     }
   }
 
-  return files;
+  return files
 }
 
 /**
  * List files recursively relative to a base path
  */
 function listFilesRecursive(dir: string, basePath: string): string[] {
-  const files: string[] = [];
-  const entries = readdirSync(dir);
+  const files: string[] = []
+  const entries = readdirSync(dir)
 
   for (const entry of entries) {
-    const fullPath = join(dir, entry);
-    const stat = statSync(fullPath);
+    const fullPath = join(dir, entry)
+    const stat = statSync(fullPath)
 
     if (stat.isDirectory()) {
-      files.push(...listFilesRecursive(fullPath, basePath));
+      files.push(...listFilesRecursive(fullPath, basePath))
     } else {
-      files.push(fullPath.replace(basePath + "/", ""));
+      files.push(fullPath.replace(basePath + '/', ''))
     }
   }
 
-  return files;
+  return files
 }

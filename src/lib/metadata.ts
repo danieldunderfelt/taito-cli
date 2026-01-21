@@ -1,9 +1,13 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
-import { getMetadataPath, getSkillsDir, type AgentType } from "./paths.js";
-import type { SkillzMetadata, InstalledSkill, VariableValues } from "../types.js";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
+import type {
+  InstalledSkill,
+  SkillzMetadata,
+  VariableValues,
+} from '../types.js'
+import { getMetadataPath, getSkillsDir, type AgentType } from './paths.js'
 
-const CURRENT_VERSION = "1.0";
+const CURRENT_VERSION = '1.0'
 
 /**
  * Read the skillz metadata file
@@ -13,23 +17,23 @@ export function readMetadata(
   global?: boolean,
   workspaceRoot?: string
 ): SkillzMetadata {
-  const metadataPath = getMetadataPath(agent, global, workspaceRoot);
+  const metadataPath = getMetadataPath(agent, global, workspaceRoot)
 
   if (!existsSync(metadataPath)) {
     return {
       version: CURRENT_VERSION,
       skills: [],
-    };
+    }
   }
 
   try {
-    const content = readFileSync(metadataPath, "utf-8");
-    return JSON.parse(content) as SkillzMetadata;
+    const content = readFileSync(metadataPath, 'utf-8')
+    return JSON.parse(content) as SkillzMetadata
   } catch {
     return {
       version: CURRENT_VERSION,
       skills: [],
-    };
+    }
   }
 }
 
@@ -42,12 +46,12 @@ export function writeMetadata(
   global?: boolean,
   workspaceRoot?: string
 ): void {
-  const metadataPath = getMetadataPath(agent, global, workspaceRoot);
+  const metadataPath = getMetadataPath(agent, global, workspaceRoot)
 
   // Ensure directory exists
-  mkdirSync(dirname(metadataPath), { recursive: true });
+  mkdirSync(dirname(metadataPath), { recursive: true })
 
-  writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+  writeFileSync(metadataPath, JSON.stringify(metadata, null, 2))
 }
 
 /**
@@ -62,10 +66,10 @@ export function recordInstalledSkill(
   global?: boolean,
   workspaceRoot?: string
 ): void {
-  const metadata = readMetadata(agent, global, workspaceRoot);
+  const metadata = readMetadata(agent, global, workspaceRoot)
 
   // Remove existing entry if present
-  metadata.skills = metadata.skills.filter((s) => s.name !== name);
+  metadata.skills = metadata.skills.filter((s) => s.name !== name)
 
   // Add new entry
   const skill: InstalledSkill = {
@@ -74,11 +78,11 @@ export function recordInstalledSkill(
     installedAt: new Date().toISOString(),
     customized,
     ...(customized && variables ? { variables } : {}),
-  };
+  }
 
-  metadata.skills.push(skill);
+  metadata.skills.push(skill)
 
-  writeMetadata(metadata, agent, global, workspaceRoot);
+  writeMetadata(metadata, agent, global, workspaceRoot)
 }
 
 /**
@@ -90,17 +94,17 @@ export function removeSkillFromMetadata(
   global?: boolean,
   workspaceRoot?: string
 ): boolean {
-  const metadata = readMetadata(agent, global, workspaceRoot);
+  const metadata = readMetadata(agent, global, workspaceRoot)
 
-  const initialCount = metadata.skills.length;
-  metadata.skills = metadata.skills.filter((s) => s.name !== name);
+  const initialCount = metadata.skills.length
+  metadata.skills = metadata.skills.filter((s) => s.name !== name)
 
   if (metadata.skills.length === initialCount) {
-    return false; // Skill not found
+    return false // Skill not found
   }
 
-  writeMetadata(metadata, agent, global, workspaceRoot);
-  return true;
+  writeMetadata(metadata, agent, global, workspaceRoot)
+  return true
 }
 
 /**
@@ -111,8 +115,8 @@ export function getInstalledSkills(
   global?: boolean,
   workspaceRoot?: string
 ): InstalledSkill[] {
-  const metadata = readMetadata(agent, global, workspaceRoot);
-  return metadata.skills;
+  const metadata = readMetadata(agent, global, workspaceRoot)
+  return metadata.skills
 }
 
 /**
@@ -124,6 +128,6 @@ export function isSkillInstalled(
   global?: boolean,
   workspaceRoot?: string
 ): boolean {
-  const metadata = readMetadata(agent, global, workspaceRoot);
-  return metadata.skills.some((s) => s.name === name);
+  const metadata = readMetadata(agent, global, workspaceRoot)
+  return metadata.skills.some((s) => s.name === name)
 }
