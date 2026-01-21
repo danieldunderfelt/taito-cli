@@ -8,8 +8,7 @@
  * - linux-arm64 (Linux ARM64)
  * - windows-x64 (Windows x86_64)
  */
-
-import { readFileSync, mkdirSync, rmSync } from 'node:fs'
+import { mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
 // Read version from package.json
@@ -29,7 +28,9 @@ const outDir = './dist'
 rmSync(outDir, { recursive: true, force: true })
 mkdirSync(outDir, { recursive: true })
 
-console.log(`Building taito-cli v${version} for ${targets.length} platforms...\n`)
+console.log(
+  `Building taito-cli v${version} for ${targets.length} platforms...\n`
+)
 
 for (const target of targets) {
   // Extract platform info from target (e.g., "bun-darwin-arm64" -> "darwin-arm64")
@@ -46,6 +47,8 @@ for (const target of targets) {
       outfile,
     },
     minify: true,
+    bytecode: true,
+    sourcemap: true,
     define: {
       BUILD_VERSION: JSON.stringify(version),
     },

@@ -16,6 +16,26 @@ npx taito-cli add owner/repo
 
 The package includes standalone executables for macOS (Apple Silicon), Linux (x64/arm64), and Windows (x64). No runtime dependencies required.
 
+### Windows Users
+
+The npm package uses a shell script launcher that works natively on macOS and Linux. On Windows, you have a few options:
+
+1. **Git Bash / WSL** (Recommended): If you have Git for Windows installed, the shell launcher works automatically in Git Bash or through WSL.
+
+2. **Use the .cmd launcher**: After installing, run the CLI using the included batch script:
+
+   ```cmd
+   node_modules\.bin\taito.cmd add owner/repo
+   ```
+
+3. **Run the binary directly**: The standalone Windows executable can be run without any launcher:
+
+   ```cmd
+   %APPDATA%\npm\node_modules\taito-cli\dist\taito-windows-x64.exe add owner/repo
+   ```
+
+4. **Download the binary**: Download `taito-windows-x64.exe` from the [releases page](https://github.com/danieldunderfelt/taito-cli/releases) and add it to your PATH.
+
 ## Quick Start
 
 ```bash

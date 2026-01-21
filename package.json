@@ -21,11 +21,12 @@
     "customizable"
   ],
   "bin": {
-    "taito": "./scripts/run.js"
+    "taito": "./scripts/run.sh"
   },
   "files": [
     "dist",
-    "scripts/run.js",
+    "scripts/run.sh",
+    "scripts/run.cmd",
     "README.md",
     "LICENSE"
   ],
