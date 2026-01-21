@@ -3,8 +3,20 @@
 
 set -e
 
-# Get the directory where this script lives
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Resolve symlinks to find the real script location
+# This is needed because npm creates symlinks when installing globally
+SOURCE="$0"
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  # If SOURCE is relative, resolve it relative to the symlink's directory
+  case "$SOURCE" in
+    /*) ;;
+    *) SOURCE="$DIR/$SOURCE" ;;
+  esac
+done
+
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 DIST_DIR="$SCRIPT_DIR/../dist"
 
 # Detect platform and architecture
