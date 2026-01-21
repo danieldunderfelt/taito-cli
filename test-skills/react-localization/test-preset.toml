@@ -1,0 +1,12 @@
+SOURCE_LANGUAGE = "English"
+SOURCE_LANGUAGE_CODE = "en"
+TRANSLATION_PATH = "src/locales/{{namespace}}/{{language}}.json"
+I18N_IMPORT = "react-i18next"
+T_FUNCTION_FORMAT = "string"
+SUPPORTED_LANGUAGES = ["en", "es"]
+ESLINT_CONFIG = ""
+LINT_COMMAND = "npm run lint"
+TYPECHECK_COMMAND = "npm run typecheck"
+PACKAGE_MANAGER = "npm"
+SOURCE_GLOB = "src/**/*.{ts,tsx}"
+TYPES_COMMAND = ""

@@ -94,6 +94,8 @@ export interface AddOptions {
   dryRun?: boolean;
   output?: string; // custom output directory
   ref?: string; // git ref (branch, tag, commit)
+  agent?: string; // specific agent to install for
+  global?: boolean; // install globally instead of locally
 }
 
 /**

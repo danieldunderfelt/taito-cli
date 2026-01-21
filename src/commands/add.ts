@@ -6,7 +6,11 @@ import {
   fetchFromGitHub,
   cleanupTempDir,
 } from "../lib/github.js";
-import { parseSkillConfig, getDefaultValues, parsePresetConfig } from "../lib/config.js";
+import {
+  parseSkillConfig,
+  getDefaultValues,
+  parsePresetConfig,
+} from "../lib/config.js";
 import { promptForVariables } from "../lib/prompts.js";
 import { renderSkill } from "../lib/render.js";
 import {
@@ -14,8 +18,11 @@ import {
   getSkillConfigPath,
   getSkillOutputDir,
   findWorkspaceRoot,
+  detectAllAgents,
+  agentConfigs,
+  type AgentType,
 } from "../lib/paths.js";
-import { recordInstalledSkill, isSkillInstalled } from "../lib/metadata.js";
+import { recordInstalledSkill } from "../lib/metadata.js";
 import type { AddOptions } from "../types.js";
 
 /**
@@ -48,6 +55,54 @@ export async function addCommand(
     }
 
     try {
+      // Detect or select agent
+      const workspaceRoot = findWorkspaceRoot();
+      let agent: AgentType | undefined;
+
+      if (options.agent) {
+        // Validate specified agent
+        if (!(options.agent in agentConfigs)) {
+          p.log.error(`Unknown agent: ${options.agent}`);
+          p.log.message(
+            `Available agents: ${Object.keys(agentConfigs).join(", ")}`
+          );
+          process.exit(1);
+        }
+        agent = options.agent as AgentType;
+      } else if (!options.output) {
+        // Auto-detect agent if no custom output specified
+        const detectedAgents = detectAllAgents(workspaceRoot);
+
+        if (detectedAgents.length === 0) {
+          p.log.warn("No agent detected in workspace. Defaulting to Cursor.");
+          agent = "cursor";
+        } else if (detectedAgents.length === 1) {
+          agent = detectedAgents[0];
+          p.log.info(`Detected agent: ${agentConfigs[agent].name}`);
+        } else {
+          // Multiple agents detected - ask user
+          p.log.info(
+            `Multiple agents detected: ${detectedAgents
+              .map((a) => agentConfigs[a].name)
+              .join(", ")}`
+          );
+
+          const selected = await p.select({
+            message: "Which agent do you want to install the skill for?",
+            options: detectedAgents.map((a) => ({
+              value: a,
+              label: agentConfigs[a].name,
+            })),
+          });
+
+          if (p.isCancel(selected)) {
+            p.cancel("Installation cancelled.");
+            process.exit(0);
+          }
+
+          agent = selected as AgentType;
+        }
+      }
       // Check if customizable
       const customizable = isCustomizableSkill(skillDir);
       let skillName: string;
@@ -80,10 +135,9 @@ export async function addCommand(
       }
 
       // Determine output directory
-      const workspaceRoot = findWorkspaceRoot();
       const outputDir = options.output
         ? resolve(options.output)
-        : getSkillOutputDir(skillName, workspaceRoot);
+        : getSkillOutputDir(skillName, agent, options.global, workspaceRoot);
 
       // Check if already installed
       if (existsSync(outputDir) && !options.dryRun) {
@@ -117,12 +171,17 @@ export async function addCommand(
           source,
           customized,
           customized ? values : undefined,
+          agent,
+          options.global,
           workspaceRoot
         );
       }
 
       // Show results
+      const agentName = agent ? agentConfigs[agent].name : "default location";
+      const globalLabel = options.global ? " (global)" : "";
       p.log.success(`Installed to ${outputDir}`);
+      p.log.message(`Agent: ${agentName}${globalLabel}`);
       for (const file of files.slice(0, 10)) {
         p.log.message(`  ${file}`);
       }

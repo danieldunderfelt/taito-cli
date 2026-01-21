@@ -1,4 +1,21 @@
-node_modules
-dist
-build
-.env
+# Development
+node_modules/
+*.log
+dist/
+
+# Test directories
+.cursor/
+.windsurf/
+.claude/
+.codex/
+.opencode/
+.gemini/
+.trae/
+.agent/
+.agents/
+.github/
+.vscode/
+
+# Temporary files
+*.toml
+!test-skills/**/*.toml

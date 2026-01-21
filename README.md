@@ -18,13 +18,17 @@ bunx skillz add owner/repo
 ## Quick Start
 
 ```bash
-# Install a skill from GitHub
+# Install a skill from GitHub (auto-detects your agent)
 skillz add aikoa/react-localization
+
+# Install for a specific agent
+skillz add aikoa/react-localization --agent cursor
+skillz add aikoa/react-localization --agent windsurf
 
 # Install with preset configuration (non-interactive)
 skillz add aikoa/react-localization --config ./my-config.toml
 
-# List installed skills
+# List installed skills (shows all detected agents)
 skillz list
 
 # Remove a skill
@@ -32,6 +36,25 @@ skillz remove react-localization
 ```
 
 ## How It Works
+
+### Multi-Agent Support
+
+`skillz` automatically detects which AI coding assistant you're using and installs skills to the correct location. Supported agents:
+
+- **Cursor** (`.cursor/skills/`)
+- **Windsurf** (`.windsurf/skills/`)
+- **Claude Code** (`.claude/skills/`)
+- **Codex** (`.codex/skills/`)
+- **OpenCode** (`.opencode/skill/`)
+- **GitHub Copilot** (`.github/skills/`)
+- **VS Code** (`.github/skills/`)
+- **Gemini CLI** (`.gemini/skills/`)
+- **Goose** (`.agents/skills/`)
+- **AMP** (`.agents/skills/`)
+- **Trae** (`.trae/skills/`)
+- **Antigravity** (`.agent/skills/`)
+
+If multiple agents are detected, you'll be prompted to choose which one to install for. You can also explicitly specify an agent with the `--agent` flag.
 
 ### Standard Skills
 
@@ -61,9 +84,13 @@ The resulting `SKILL.md` will contain instructions tailored to your project.
 Install a skill from GitHub or a local path.
 
 ```bash
-# From GitHub
+# From GitHub (auto-detects agent)
 skillz add owner/repo
 skillz add owner/repo@v1.0.0  # specific tag/branch
+
+# Install for specific agent
+skillz add owner/repo --agent cursor
+skillz add owner/repo --agent windsurf
 
 # From local path
 skillz add ./path/to/skill
@@ -73,11 +100,12 @@ skillz add owner/repo --config ./answers.toml  # preset config
 skillz add owner/repo --dry-run                # preview without writing
 skillz add owner/repo --output ./custom/path   # custom output directory
 skillz add owner/repo --ref main               # specific git ref
+skillz add owner/repo --global                 # install globally (agent-dependent)
 ```
 
 ### `skillz list`
 
-List all installed skills.
+List all installed skills across all detected agents.
 
 ```bash
 skillz list
@@ -86,19 +114,24 @@ skillz list
 Output:
 
 ```
-Installed skills (2):
+Cursor (1 skill):
   react-localization (customized)
     Source: aikoa/react-localization
     Installed: 1/21/2026
 
+  Directory: /path/to/.cursor/skills
+
+Windsurf (1 skill):
   code-review
     Source: vercel-labs/agent-skills
     Installed: 1/20/2026
+
+  Directory: /path/to/.windsurf/skills
 ```
 
 ### `skillz remove <name>`
 
-Remove an installed skill.
+Remove an installed skill. If the skill is installed for multiple agents, you'll be prompted to choose which one to remove from.
 
 ```bash
 skillz remove react-localization
@@ -262,6 +295,30 @@ Then install non-interactively:
 skillz add owner/repo --config ./team-config.toml
 ```
 
+## Multi-Agent Detection
+
+`skillz` automatically detects which AI coding assistant is being used by checking for marker directories:
+
+```bash
+# Single agent detected - installs automatically
+$ skillz add owner/repo
+✓ Detected agent: Cursor
+✓ Installing to .cursor/skills/...
+
+# Multiple agents detected - prompts for choice
+$ skillz add owner/repo
+✓ Multiple agents detected: Cursor, Windsurf
+? Which agent do you want to install the skill for?
+  > Cursor
+    Windsurf
+
+# Force specific agent
+$ skillz add owner/repo --agent windsurf
+✓ Installing to .windsurf/skills/...
+```
+
+The detection order prioritizes the most commonly used agents first. If you're using multiple agents in the same project and want skills installed for all of them, run the command multiple times with different `--agent` flags.
+
 ## Private Repositories
 
 For private GitHub repositories, set the `GITHUB_TOKEN` environment variable:
@@ -273,17 +330,36 @@ skillz add private-org/private-skill
 
 ## Output Location
 
-By default, skills are installed to `.cursor/skills/<skill-name>/`. The workspace root is detected by looking for:
+By default, skills are installed to the appropriate directory for your detected agent:
 
-1. `.cursor/` directory
+- Cursor: `.cursor/skills/<skill-name>/`
+- Windsurf: `.windsurf/skills/<skill-name>/`
+- Claude Code: `.claude/skills/<skill-name>/`
+- etc.
+
+The workspace root is detected by looking for:
+
+1. Agent-specific directories (`.cursor`, `.windsurf`, etc.)
 2. `.git/` directory
 3. `package.json`
 4. Current working directory (fallback)
 
-Use `--output` to specify a custom location:
+### Global Installation
+
+Some agents support global installation with the `--global` flag:
 
 ```bash
-skillz add owner/repo --output ~/.cursor/skills/
+skillz add owner/repo --global
+```
+
+This installs to the agent's global directory (typically in your home directory) instead of the project-local directory. Not all agents support global installation.
+
+### Custom Output
+
+Use `--output` to specify a custom location (bypasses agent detection):
+
+```bash
+skillz add owner/repo --output ~/.my-skills/
 ```
 
 ## License

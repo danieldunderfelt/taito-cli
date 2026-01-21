@@ -19,12 +19,16 @@ program
   .option("-d, --dry-run", "Preview changes without writing files")
   .option("-o, --output <path>", "Custom output directory")
   .option("-r, --ref <ref>", "Git ref (branch, tag, or commit)")
+  .option("-a, --agent <agent>", "Target agent (cursor, claudeCode, windsurf, etc.)")
+  .option("-g, --global", "Install globally instead of locally")
   .action(async (source: string, options) => {
     await addCommand(source, {
       config: options.config,
       dryRun: options.dryRun,
       output: options.output,
       ref: options.ref,
+      agent: options.agent,
+      global: options.global,
     });
   });
 
