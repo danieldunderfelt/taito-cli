@@ -1,14 +1,14 @@
 {
-  "name": "skillz",
+  "name": "taito",
   "version": "0.1.0",
   "description": "CLI for installing customizable Agent Skills from GitHub.",
   "type": "module",
   "bin": {
-    "skillz": "./bin/skillz.ts"
+    "taito": "./bin/taito.ts"
   },
   "scripts": {
-    "dev": "bun run bin/skillz.ts",
-    "build": "bun build ./bin/skillz.ts --outdir ./dist --target node",
+    "dev": "bun run bin/taito.ts",
+    "build": "bun build ./bin/taito.ts --outdir ./dist --target node",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

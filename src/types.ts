@@ -74,7 +74,7 @@ export interface SkillMeta {
 }
 
 /**
- * Full skill configuration from .skillz/skill.config.toml
+ * Full skill configuration from .taito/skill.config.toml
  */
 export interface SkillConfig {
   meta: SkillMeta
@@ -102,7 +102,7 @@ export interface AddOptions {
  * Options for the build command
  */
 export interface BuildOptions {
-  output?: string // custom output directory (default: parent of .skillz/)
+  output?: string // custom output directory (default: parent of .taito/)
 }
 
 /**
@@ -117,7 +117,7 @@ export interface SkillSource {
 }
 
 /**
- * Installed skill metadata (stored in .cursor/skills/.skillz-meta.json)
+ * Installed skill metadata (stored in .cursor/skills/.taito-meta.json)
  */
 export interface InstalledSkill {
   name: string
@@ -130,7 +130,7 @@ export interface InstalledSkill {
 /**
  * Metadata file for tracking installed skills
  */
-export interface SkillzMetadata {
+export interface taitoMetadata {
   version: string
   skills: InstalledSkill[]
 }

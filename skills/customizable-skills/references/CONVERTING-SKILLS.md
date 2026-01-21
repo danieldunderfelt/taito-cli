@@ -7,10 +7,10 @@ This guide walks through the process of making an existing standard skill custom
 Converting a skill involves:
 
 1. Identifying what to make customizable
-2. Creating the `.skillz/` folder structure
+2. Creating the `.taito/` folder structure
 3. Writing `skill.config.toml` with variable definitions
 4. Converting static content to EJS templates
-5. Testing with `skillz build`
+5. Testing with `taito build`
 6. Maintaining backwards compatibility
 
 ## Step 1: Identify Customizable Content
@@ -24,24 +24,24 @@ Review your skill and identify content that:
 
 ### Common Customization Candidates
 
-| Content Type | Example Variables |
-|-------------|-------------------|
-| Project names/paths | `PROJECT_NAME`, `SRC_DIR`, `CONFIG_PATH` |
-| Framework/library | `FRAMEWORK`, `UI_LIBRARY`, `STATE_MANAGER` |
-| Language settings | `LANGUAGES`, `DEFAULT_LOCALE` |
-| Feature toggles | `USE_TYPESCRIPT`, `ENABLE_TESTING` |
-| Tool preferences | `PACKAGE_MANAGER`, `LINTER` |
+| Content Type        | Example Variables                          |
+| ------------------- | ------------------------------------------ |
+| Project names/paths | `PROJECT_NAME`, `SRC_DIR`, `CONFIG_PATH`   |
+| Framework/library   | `FRAMEWORK`, `UI_LIBRARY`, `STATE_MANAGER` |
+| Language settings   | `LANGUAGES`, `DEFAULT_LOCALE`              |
+| Feature toggles     | `USE_TYPESCRIPT`, `ENABLE_TESTING`         |
+| Tool preferences    | `PACKAGE_MANAGER`, `LINTER`                |
 
-## Step 2: Create the .skillz/ Folder
+## Step 2: Create the .taito/ Folder
 
-Create a `.skillz/` folder in your skill root that mirrors the structure of files you want to customize:
+Create a `.taito/` folder in your skill root that mirrors the structure of files you want to customize:
 
 ```
 my-skill/
 ├── SKILL.md                  # Keep this (default output)
 ├── scripts/
 │   └── setup.sh              # Keep this (default output)
-└── .skillz/                  # Create this
+└── .taito/                  # Create this
     ├── skill.config.toml     # Variable definitions
     ├── SKILL.md.ejs          # Template for SKILL.md
     └── scripts/
@@ -50,7 +50,7 @@ my-skill/
 
 ## Step 3: Write skill.config.toml
 
-Define your variables in `.skillz/skill.config.toml`:
+Define your variables in `.taito/skill.config.toml`:
 
 ```toml
 [meta]
@@ -93,6 +93,7 @@ default = ["eslint", "prettier"]
 ### Variable Definition Reference
 
 **String variable:**
+
 ```toml
 [variables.NAME]
 type = "string"
@@ -103,6 +104,7 @@ validate = "^[a-z-]+$"     # Optional regex
 ```
 
 **Choice variable:**
+
 ```toml
 [variables.OPTION]
 type = "choice"
@@ -119,6 +121,7 @@ default = "option1"
 ```
 
 **Boolean variable:**
+
 ```toml
 [variables.FLAG]
 type = "boolean"
@@ -127,6 +130,7 @@ default = true
 ```
 
 **Array variable:**
+
 ```toml
 [variables.ITEMS]
 type = "array"
@@ -207,15 +211,16 @@ This project uses:
 
 ### EJS Syntax Reference
 
-| Syntax | Purpose | Example |
-|--------|---------|---------|
-| `<%= var %>` | Output escaped value | `<%= PROJECT_NAME %>` |
-| `<%- var %>` | Output unescaped value | `<%- HTML_CONTENT %>` |
-| `<% code %>` | Execute JavaScript | `<% if (condition) { %>` |
+| Syntax       | Purpose                | Example                  |
+| ------------ | ---------------------- | ------------------------ |
+| `<%= var %>` | Output escaped value   | `<%= PROJECT_NAME %>`    |
+| `<%- var %>` | Output unescaped value | `<%- HTML_CONTENT %>`    |
+| `<% code %>` | Execute JavaScript     | `<% if (condition) { %>` |
 
 ### Common Patterns
 
 **Conditional sections:**
+
 ```ejs
 <% if (USE_TYPESCRIPT) { %>
 ## TypeScript Setup
@@ -224,6 +229,7 @@ This project uses:
 ```
 
 **Choice-based content:**
+
 ```ejs
 <% if (FRAMEWORK === 'react') { %>
 Use `useState` for local state.
@@ -233,6 +239,7 @@ Use `ref()` for reactive state.
 ```
 
 **Iterating arrays:**
+
 ```ejs
 <% LANGUAGES.forEach(lang => { %>
 - <%= lang %>
@@ -240,19 +247,21 @@ Use `ref()` for reactive state.
 ```
 
 **Inline conditionals:**
+
 ```ejs
 Use `<%= USE_TYPESCRIPT ? 'tsx' : 'jsx' %>` files.
 ```
 
-## Step 5: Test with skillz build
+## Step 5: Test with taito build
 
-Run `skillz build` to regenerate the default files using your default values:
+Run `taito build` to regenerate the default files using your default values:
 
 ```bash
-skillz build ./my-skill/
+taito build ./my-skill/
 ```
 
 This:
+
 1. Reads variables from `skill.config.toml`
 2. Uses the default values for each variable
 3. Renders templates to root-level files
@@ -264,12 +273,13 @@ Verify the output matches your expectations before committing.
 
 After any template change:
 
-1. Update the templates in `.skillz/`
-2. Run `skillz build` to regenerate defaults
+1. Update the templates in `.taito/`
+2. Run `taito build` to regenerate defaults
 3. Commit both the templates AND the regenerated root files
 
 This ensures:
-- Users of Skillz CLI get customization
+
+- Users of Taito CLI get customization
 - Users of other CLIs get working defaults
 - The skill works with any installation method
 
@@ -285,6 +295,7 @@ localization-skill/
 ```
 
 **SKILL.md:**
+
 ```markdown
 ---
 name: localization-skill
@@ -309,14 +320,15 @@ localization-skill/
 ├── SKILL.md                    # Regenerated default
 ├── scripts/
 │   └── extract.sh              # Regenerated default
-└── .skillz/
+└── .taito/
     ├── skill.config.toml
     ├── SKILL.md.ejs
     └── scripts/
         └── extract.sh.ejs
 ```
 
-**.skillz/skill.config.toml:**
+**.taito/skill.config.toml:**
+
 ```toml
 [meta]
 name = "localization-skill"
@@ -346,7 +358,8 @@ prompt = "Where are your translation files?"
 default = "src/locales"
 ```
 
-**.skillz/SKILL.md.ejs:**
+**.taito/SKILL.md.ejs:**
+
 ```ejs
 ---
 name: localization-skill
@@ -384,7 +397,7 @@ Before publishing your converted skill:
 
 - [ ] All customizable content uses variables
 - [ ] Default values produce a working skill
-- [ ] `skillz build` generates correct output
+- [ ] `taito build` generates correct output
 - [ ] Root-level files are committed (for backwards compatibility)
 - [ ] Variable prompts are clear and helpful
 - [ ] Choice options cover common use cases

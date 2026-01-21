@@ -1,22 +1,18 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
-import type {
-  InstalledSkill,
-  SkillzMetadata,
-  VariableValues,
-} from '../types.js'
-import { getMetadataPath, getSkillsDir, type AgentType } from './paths.js'
+import type { InstalledSkill, taitoMetadata, VariableValues } from '../types.js'
+import { getMetadataPath, type AgentType } from './paths.js'
 
 const CURRENT_VERSION = '1.0'
 
 /**
- * Read the skillz metadata file
+ * Read the taito metadata file
  */
 export function readMetadata(
   agent?: AgentType,
   global?: boolean,
   workspaceRoot?: string
-): SkillzMetadata {
+): taitoMetadata {
   const metadataPath = getMetadataPath(agent, global, workspaceRoot)
 
   if (!existsSync(metadataPath)) {
@@ -28,7 +24,7 @@ export function readMetadata(
 
   try {
     const content = readFileSync(metadataPath, 'utf-8')
-    return JSON.parse(content) as SkillzMetadata
+    return JSON.parse(content) as taitoMetadata
   } catch {
     return {
       version: CURRENT_VERSION,
@@ -38,10 +34,10 @@ export function readMetadata(
 }
 
 /**
- * Write the skillz metadata file
+ * Write the taito metadata file
  */
 export function writeMetadata(
-  metadata: SkillzMetadata,
+  metadata: taitoMetadata,
   agent?: AgentType,
   global?: boolean,
   workspaceRoot?: string

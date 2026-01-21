@@ -11,7 +11,7 @@ import ejs from 'ejs'
 import type { VariableValues } from '../types.js'
 
 /**
- * Render all .ejs templates in .skillz/ directory
+ * Render all .ejs templates in .taito/ directory
  * and copy non-templated files from root
  */
 export async function renderSkill(
@@ -20,16 +20,16 @@ export async function renderSkill(
   values: VariableValues,
   dryRun: boolean = false
 ): Promise<string[]> {
-  const skillzDir = join(skillDir, '.skillz')
+  const taitoDir = join(skillDir, '.taito')
   const renderedFiles: string[] = []
 
-  // Collect all template files from .skillz/
-  const templateFiles = collectFiles(skillzDir, '.ejs')
+  // Collect all template files from .taito/
+  const templateFiles = collectFiles(taitoDir, '.ejs')
   const templateTargets = new Set<string>()
 
   // Process each template
   for (const templatePath of templateFiles) {
-    const relativePath = relative(skillzDir, templatePath)
+    const relativePath = relative(taitoDir, templatePath)
     // Remove .ejs extension for output path
     const outputPath = join(outputDir, relativePath.replace(/\.ejs$/, ''))
     templateTargets.add(relativePath.replace(/\.ejs$/, ''))
@@ -57,8 +57,8 @@ export async function renderSkill(
   for (const filePath of rootFiles) {
     const relativePath = relative(skillDir, filePath)
 
-    // Skip .skillz/ directory
-    if (relativePath.startsWith('.skillz')) {
+    // Skip .taito/ directory
+    if (relativePath.startsWith('.taito')) {
       continue
     }
 
@@ -174,16 +174,16 @@ export async function renderWithDefaults(
   values: VariableValues,
   outputDir?: string
 ): Promise<string[]> {
-  const skillzDir = join(skillDir, '.skillz')
+  const taitoDir = join(skillDir, '.taito')
   const targetDir = outputDir ? resolve(outputDir) : skillDir
   const renderedFiles: string[] = []
 
-  // Collect all template files from .skillz/
-  const templateFiles = collectFiles(skillzDir, '.ejs')
+  // Collect all template files from .taito/
+  const templateFiles = collectFiles(taitoDir, '.ejs')
 
   // Process each template, writing to target directory
   for (const templatePath of templateFiles) {
-    const relativePath = relative(skillzDir, templatePath)
+    const relativePath = relative(taitoDir, templatePath)
     // Remove .ejs extension and write to target directory
     const outputPath = join(targetDir, relativePath.replace(/\.ejs$/, ''))
 

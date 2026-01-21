@@ -7,7 +7,7 @@ import { renderWithDefaults } from '../lib/render.js'
 import type { BuildOptions } from '../types.js'
 
 /**
- * Build default files from .skillz/ templates
+ * Build default files from .taito/ templates
  * For skill authors to regenerate SKILL.md etc. with default values
  */
 export async function buildCommand(
@@ -27,7 +27,7 @@ export async function buildCommand(
 
     // Check if it's a customizable skill
     if (!isCustomizableSkill(skillDir)) {
-      p.log.error('No .skillz/ folder found. This is not a customizable skill.')
+      p.log.error('No .taito/ folder found. This is not a customizable skill.')
       process.exit(1)
     }
 

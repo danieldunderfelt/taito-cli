@@ -225,26 +225,26 @@ export function getMetadataPath(
   global?: boolean,
   workspaceRoot?: string
 ): string {
-  return join(getSkillsDir(agent, global, workspaceRoot), '.skillz-meta.json')
+  return join(getSkillsDir(agent, global, workspaceRoot), '.taito-meta.json')
 }
 
 /**
  * Check if a directory contains a customizable skill
  */
 export function isCustomizableSkill(skillDir: string): boolean {
-  return existsSync(join(skillDir, '.skillz', 'skill.config.toml'))
+  return existsSync(join(skillDir, '.taito', 'skill.config.toml'))
 }
 
 /**
- * Get the .skillz config directory path
+ * Get the .taito config directory path
  */
-export function getSkillzConfigDir(skillDir: string): string {
-  return join(skillDir, '.skillz')
+export function gettaitoConfigDir(skillDir: string): string {
+  return join(skillDir, '.taito')
 }
 
 /**
  * Get the skill config file path
  */
 export function getSkillConfigPath(skillDir: string): string {
-  return join(skillDir, '.skillz', 'skill.config.toml')
+  return join(skillDir, '.taito', 'skill.config.toml')
 }

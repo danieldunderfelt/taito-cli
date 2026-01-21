@@ -8,7 +8,7 @@ import { removeCommand } from '../src/commands/remove.js'
 const program = new Command()
 
 program
-  .name('skillz')
+  .name('taito')
   .description('CLI for installing customizable Agent Skills')
   .version('0.1.0')
 
@@ -52,9 +52,7 @@ program
 
 program
   .command('build [path]')
-  .description(
-    'Build default files from .skillz/ templates (for skill authors)'
-  )
+  .description('Build default files from .taito/ templates (for skill authors)')
   .option('-o, --output <path>', 'Custom output directory')
   .action(async (path: string | undefined, options) => {
     await buildCommand(path, {

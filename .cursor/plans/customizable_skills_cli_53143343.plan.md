@@ -109,7 +109,7 @@ skills-cli/
 
 ### Customizable Skill Structure
 
-The `.skillz/` folder contains all customization files, completely separate from the standard skill files. This ensures:
+The `.taito/` folder contains all customization files, completely separate from the standard skill files. This ensures:
 
 - Other CLIs (like Vercel's) see only the standard `SKILL.md`, `scripts/`, `references/`
 - Template files are never accidentally copied to output
@@ -122,7 +122,7 @@ react-localization/
 │   └── find-strings.sh       # Default script
 ├── references/
 │   └── REFERENCE.md
-└── .skillz/                  # Customization folder (hidden from other CLIs)
+└── .taito/                  # Customization folder (hidden from other CLIs)
     ├── skill.config.toml     # Variable definitions
     ├── SKILL.md.ejs          # Template for SKILL.md
     ├── scripts/
@@ -133,15 +133,15 @@ react-localization/
 
 **Key points:**
 
-- `.skillz/` mirrors the standard skill directory structure
-- Each `.ejs` file in `.skillz/` corresponds to an output file in the parent
-- Files without an `.ejs` counterpart in `.skillz/` are copied as-is from the parent
-- The `build` command renders `.skillz/` templates with defaults to update root-level files
+- `.taito/` mirrors the standard skill directory structure
+- Each `.ejs` file in `.taito/` corresponds to an output file in the parent
+- Files without an `.ejs` counterpart in `.taito/` are copied as-is from the parent
+- The `build` command renders `.taito/` templates with defaults to update root-level files
 
 ## Configuration Format (TOML)
 
 ```toml
-# .skillz/skill.config.toml
+# .taito/skill.config.toml
 
 [meta]
 name = "react-localization"
@@ -182,7 +182,7 @@ default = "src/locales/{{ns}}/{{lng}}.json"
 
 ## Template Format (EJS)
 
-Example `.skillz/SKILL.md.ejs`:
+Example `.taito/SKILL.md.ejs`:
 
 ```markdown
 ## Source language
@@ -219,31 +219,31 @@ t("common:navigation.next");
 
 ```bash
 # From GitHub (interactive)
-bunx skillz add owner/repo
+bunx taito add owner/repo
 
 # From GitHub with preset config
-bunx skillz add owner/repo --config ./answers.toml
+bunx taito add owner/repo --config ./answers.toml
 
 # Dry run (preview without writing)
-bunx skillz add owner/repo --dry-run
+bunx taito add owner/repo --dry-run
 
 # Custom output directory
-bunx skillz add owner/repo --output ./my-skills/
+bunx taito add owner/repo --output ./my-skills/
 ```
 
 **Flow:**
 
 1. Parse `owner/repo` argument
 2. Fetch skill from GitHub (download tarball, extract)
-3. Check for `.skillz/` folder
-4. If customizable (`.skillz/` exists):
+3. Check for `.taito/` folder
+4. If customizable (`.taito/` exists):
 
-- Parse `.skillz/skill.config.toml`
+- Parse `.taito/skill.config.toml`
 - Prompt user for each variable
-- Render `.ejs` templates from `.skillz/` with user values
-- Copy non-templated files from root (those without `.skillz/` counterpart)
+- Render `.ejs` templates from `.taito/` with user values
+- Copy non-templated files from root (those without `.taito/` counterpart)
 
-1. If standard skill (no `.skillz/`):
+1. If standard skill (no `.taito/`):
 
 - Copy `SKILL.md`, `scripts/`, `references/` directly
 
@@ -252,7 +252,7 @@ bunx skillz add owner/repo --output ./my-skills/
 ### `list` - List installed skills
 
 ```bash
-bunx skillz list
+bunx taito list
 ```
 
 Output:
@@ -266,26 +266,26 @@ Installed skills:
 ### `remove` - Remove a skill
 
 ```bash
-bunx skillz remove react-localization
+bunx taito remove react-localization
 ```
 
 ### `build` - Generate defaults from templates
 
-For skill authors to regenerate root-level files from `.skillz/` templates using default values. This keeps the backwards-compatible `SKILL.md` in sync with the templates:
+For skill authors to regenerate root-level files from `.taito/` templates using default values. This keeps the backwards-compatible `SKILL.md` in sync with the templates:
 
 ```bash
 # Build in current directory
-bunx skillz build
+bunx taito build
 
 # Or specify path
-bunx skillz build ./my-skill/
+bunx taito build ./my-skill/
 ```
 
 **Flow:**
 
-1. Read `.skillz/skill.config.toml` for default values
+1. Read `.taito/skill.config.toml` for default values
 2. Render all `.ejs` templates with defaults
-3. Write output to parent directory (e.g., `.skillz/SKILL.md.ejs` -> `SKILL.md`)
+3. Write output to parent directory (e.g., `.taito/SKILL.md.ejs` -> `SKILL.md`)
 
 ## Key Dependencies
 
@@ -321,17 +321,17 @@ Extract to temp directory, process, then clean up.
 
 ### Template Processing
 
-1. Scan `.skillz/` for all `.ejs` files (preserving directory structure)
-2. For each template in `.skillz/`:
+1. Scan `.taito/` for all `.ejs` files (preserving directory structure)
+2. For each template in `.taito/`:
 
 - Render with user variables
-- Write to output path, mapping `.skillz/foo.ejs` to `output/foo`
+- Write to output path, mapping `.taito/foo.ejs` to `output/foo`
 
-1. Scan root skill directory for files that don't have a `.skillz/` counterpart:
+1. Scan root skill directory for files that don't have a `.taito/` counterpart:
 
 - Copy these files directly to output (e.g., images, non-templated references)
 
-1. Skip `.skillz/` folder entirely from output
+1. Skip `.taito/` folder entirely from output
 
 ### Output Path Resolution
 
@@ -355,7 +355,7 @@ Detect workspace root by looking for:
 ## Example Session
 
 ```
-$ bunx skillz add aikoa/react-localization
+$ bunx taito add aikoa/react-localization
 
 Fetching aikoa/react-localization...
 

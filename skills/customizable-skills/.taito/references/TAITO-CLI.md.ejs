@@ -1,49 +1,49 @@
-# Skillz CLI Reference
+# Taito CLI Reference
 
-The Skillz CLI installs Agent Skills from GitHub with support for customization. This reference covers all commands and options.
+The Taito CLI installs Agent Skills from GitHub with support for customization. This reference covers all commands and options.
 
 ## Installation
 
 ```bash
 # Using npm
-npm install -g skillz
+npm install -g taito
 
 # Or run directly with npx/bunx/pnpx
-npx skillz add owner/repo
-bunx skillz add owner/repo
+npx taito add owner/repo
+bunx taito add owner/repo
 ```
 
 ## Commands
 
-### skillz add
+### taito add
 
 Install a skill from GitHub or a local path.
 
 ```bash
 # From GitHub (auto-detects agent)
-skillz add owner/repo
-skillz add owner/repo@v1.0.0  # specific tag/branch
+taito add owner/repo
+taito add owner/repo@v1.0.0  # specific tag/branch
 
-# For cursor
-skillz add owner/repo --agent cursor
+# For <%= PREFERRED_AGENT %>
+taito add owner/repo --agent <%= PREFERRED_AGENT %>
 
 # From local path
-skillz add ./path/to/skill
+taito add ./path/to/skill
 
 # With preset configuration (non-interactive)
-skillz add owner/repo --config ./answers.toml
+taito add owner/repo --config ./answers.toml
 
 # Preview without writing
-skillz add owner/repo --dry-run
+taito add owner/repo --dry-run
 
 # Custom output directory
-skillz add owner/repo --output ./custom/path
+taito add owner/repo --output ./custom/path
 
 # Specific git ref
-skillz add owner/repo --ref main
+taito add owner/repo --ref main
 
 # Install globally (agent-dependent)
-skillz add owner/repo --global
+taito add owner/repo --global
 ```
 
 #### Options
@@ -57,18 +57,18 @@ skillz add owner/repo --global
 | `--ref <ref>` | Specific git ref (branch, tag, commit) |
 | `--global` | Install to agent's global directory |
 
-### skillz list
+### taito list
 
 List all installed skills across all detected agents.
 
 ```bash
-skillz list
+taito list
 ```
 
 Example output:
 
 ```
-Cursor (2 skills):
+<%= PREFERRED_AGENT.charAt(0).toUpperCase() + PREFERRED_AGENT.slice(1).replace('-', ' ') %> (2 skills):
   react-localization (customized)
     Source: aikoa/react-localization
     Installed: 1/21/2026
@@ -77,29 +77,29 @@ Cursor (2 skills):
     Source: vercel-labs/agent-skills
     Installed: 1/20/2026
 
-  Directory: /path/to/.cursor/skills
+  Directory: /path/to/<%= SKILLS_DIRECTORY %>
 ```
 
-### skillz remove
+### taito remove
 
 Remove an installed skill.
 
 ```bash
-skillz remove skill-name
+taito remove skill-name
 ```
 
 If the skill is installed for multiple agents, you'll be prompted to choose which one to remove from.
 
-### skillz build
+### taito build
 
-For skill authors: regenerate default files from `.skillz/` templates using default values.
+For skill authors: regenerate default files from `.taito/` templates using default values.
 
 ```bash
 # Build in current directory
-skillz build
+taito build
 
 # Build specific skill
-skillz build ./my-skill/
+taito build ./my-skill/
 ```
 
 This keeps skills compatible with CLIs that don't support customization by ensuring root-level files stay in sync with templates.
@@ -129,20 +129,20 @@ The CLI automatically detects which AI coding assistant you're using and install
 
 ```bash
 # Single agent detected - installs automatically
-$ skillz add owner/repo
-✓ Detected agent: Cursor
-✓ Installing to .cursor/skills/...
+$ taito add owner/repo
+✓ Detected agent: <%= PREFERRED_AGENT.charAt(0).toUpperCase() + PREFERRED_AGENT.slice(1).replace('-', ' ') %>
+✓ Installing to <%= SKILLS_DIRECTORY %>/...
 
 # Multiple agents detected - prompts for choice
-$ skillz add owner/repo
+$ taito add owner/repo
 ✓ Multiple agents detected: Cursor, Windsurf
 ? Which agent do you want to install the skill for?
   > Cursor
     Windsurf
 
 # Force specific agent
-$ skillz add owner/repo --agent cursor
-✓ Installing to .cursor/skills/...
+$ taito add owner/repo --agent <%= PREFERRED_AGENT %>
+✓ Installing to <%= SKILLS_DIRECTORY %>/...
 ```
 
 ## Private Repositories
@@ -151,7 +151,7 @@ For private GitHub repositories, set the `GITHUB_TOKEN` environment variable:
 
 ```bash
 export GITHUB_TOKEN=ghp_xxxxxxxxxxxx
-skillz add private-org/private-skill
+taito add private-org/private-skill
 ```
 
 ## Workspace Detection
@@ -168,7 +168,7 @@ The workspace root is detected by looking for (in order):
 Some agents support global installation:
 
 ```bash
-skillz add owner/repo --global
+taito add owner/repo --global
 ```
 
 This installs to the agent's global directory (typically in your home directory) instead of the project-local directory.
@@ -188,7 +188,7 @@ SUPPORTED_LANGUAGES = ["en", "es", "fr", "de"]
 Then install non-interactively:
 
 ```bash
-skillz add owner/repo --config ./team-config.toml
+taito add owner/repo --config ./team-config.toml
 ```
 
 ## Standard vs Customizable Skills
@@ -196,11 +196,11 @@ skillz add owner/repo --config ./team-config.toml
 The CLI handles both types transparently:
 
 - **Standard skills**: Copies `SKILL.md`, `scripts/`, `references/`, `assets/`, and `rules/` to the output directory
-- **Customizable skills**: Detects `.skillz/skill.config.toml`, prompts for values, renders templates, then outputs the customized files
+- **Customizable skills**: Detects `.taito/skill.config.toml`, prompts for values, renders templates, then outputs the customized files
 
 ## Metadata Tracking
 
-Installed skills are tracked in `.skillz-meta.json` in the skills directory:
+Installed skills are tracked in `.taito-meta.json` in the skills directory:
 
 ```json
 {

@@ -41,7 +41,7 @@ export function discoverSkills(repoDir: string): DiscoveredSkill[] {
           if (
             entry === 'node_modules' ||
             entry === '.git' ||
-            (entry.startsWith('.') && entry !== '.skillz')
+            (entry.startsWith('.') && entry !== '.taito')
           ) {
             continue
           }

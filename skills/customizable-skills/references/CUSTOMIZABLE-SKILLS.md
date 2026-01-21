@@ -1,10 +1,11 @@
 # Customizable Skills
 
-Customizable skills adapt to a project's specific configuration during installation. This reference explains the `.skillz/` format that enables customization.
+Customizable skills adapt to a project's specific configuration during installation. This reference explains the `.taito/` format that enables customization.
 
 ## What Makes a Skill Customizable
 
-A standard skill becomes customizable when it contains a `.skillz/` folder with:
+A standard skill becomes customizable when it contains a `.taito/` folder with:
+
 - `skill.config.toml` - Variable definitions
 - EJS templates (`.ejs` files) that use those variables
 
@@ -13,7 +14,7 @@ my-skill/
 ├── SKILL.md                  # Default output (for standard CLIs)
 ├── scripts/
 │   └── helper.sh             # Default script
-└── .skillz/                  # Customization folder
+└── .taito/                  # Customization folder
     ├── skill.config.toml     # Variable definitions
     ├── SKILL.md.ejs          # Template for SKILL.md
     └── scripts/
@@ -22,16 +23,16 @@ my-skill/
 
 ## How It Works
 
-During installation with the Skillz CLI:
+During installation with the Taito CLI:
 
-1. The CLI detects `.skillz/skill.config.toml`
+1. The CLI detects `.taito/skill.config.toml`
 2. User is prompted for variable values (or uses a preset config)
 3. Templates are rendered with those values
 4. Customized files are output to the skills directory
 
 ## Configuration File Format
 
-Create `.skillz/skill.config.toml` to define customizable variables:
+Create `.taito/skill.config.toml` to define customizable variables:
 
 ```toml
 [meta]
@@ -80,12 +81,12 @@ default = ["en", "es"]
 
 ## Variable Types
 
-| Type | Prompt Style | Value Type | Notes |
-|------|--------------|------------|-------|
-| `string` | Text input | `string` | Optional regex validation with `validate` |
-| `choice` | Select menu | `string` | Must define `options` array |
-| `boolean` | Yes/No confirm | `boolean` | |
-| `array` | Comma-separated text | `string[]` | Parsed from comma-separated input |
+| Type      | Prompt Style         | Value Type | Notes                                     |
+| --------- | -------------------- | ---------- | ----------------------------------------- |
+| `string`  | Text input           | `string`   | Optional regex validation with `validate` |
+| `choice`  | Select menu          | `string`   | Must define `options` array               |
+| `boolean` | Yes/No confirm       | `boolean`  |                                           |
+| `array`   | Comma-separated text | `string[]` | Parsed from comma-separated input         |
 
 ### String Variables
 
@@ -167,7 +168,7 @@ Make sure your `tsconfig.json` includes...
 
 ### Complete Example
 
-Create `.skillz/SKILL.md.ejs`:
+Create `.taito/SKILL.md.ejs`:
 
 ```ejs
 ---
@@ -196,18 +197,18 @@ Make sure your `tsconfig.json` includes the necessary settings.
 
 Customizable skills are designed to be backwards compatible:
 
-- **Other CLIs** (like skills.sh) see only the root-level files (`SKILL.md`, `scripts/`, etc.) and install them normally. The `.skillz/` folder is ignored as a hidden directory.
+- **Other CLIs** (like skills.sh) see only the root-level files (`SKILL.md`, `scripts/`, etc.) and install them normally. The `.taito/` folder is ignored as a hidden directory.
 
-- **Skillz CLI** checks for `.skillz/skill.config.toml`. If present, it uses the templates for customization. If not, it behaves like a standard skill installer.
+- **Taito CLI** checks for `.taito/skill.config.toml`. If present, it uses the templates for customization. If not, it behaves like a standard skill installer.
 
-This means you can publish a single skill that works with any CLI—users with Skillz get customization, while users with other CLIs get sensible defaults.
+This means you can publish a single skill that works with any CLI—users with Taito get customization, while users with other CLIs get sensible defaults.
 
 ## Keeping Defaults in Sync
 
-After editing templates, run `skillz build` to regenerate the default files:
+After editing templates, run `taito build` to regenerate the default files:
 
 ```bash
-skillz build ./my-skill/
+taito build ./my-skill/
 ```
 
 This uses the default values from `skill.config.toml` to render the root-level files, ensuring compatibility with standard skill installers.
@@ -227,7 +228,7 @@ SUPPORTED_LANGUAGES = ["en", "es", "fr", "de"]
 Install non-interactively:
 
 ```bash
-skillz add owner/repo --config ./team-config.toml
+taito add owner/repo --config ./team-config.toml
 ```
 
 ## Best Practices

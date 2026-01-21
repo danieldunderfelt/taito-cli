@@ -1,15 +1,15 @@
 ---
 name: customizable-skills
-description: Create and manage Agent Skills with the Skillz CLI. Use when writing SKILL.md files, making skills customizable, installing skills from GitHub, or converting standard skills to customizable ones. Covers the Agent Skills specification, EJS templates, and skill.config.toml format.
+description: Create and manage Agent Skills with the Taito CLI. Use when writing SKILL.md files, making skills customizable, installing skills from GitHub, or converting standard skills to customizable ones. Covers the Agent Skills specification, EJS templates, and skill.config.toml format.
 ---
 
 # Customizable Skills
 
-This skill helps you work with Agent Skills and the Skillz CLI. Use it when you need to:
+This skill helps you work with Agent Skills and the Taito CLI. Use it when you need to:
 
 - Write a new Agent Skill (SKILL.md)
 
-- Install skills from GitHub using the Skillz CLI
+- Install skills from GitHub using the Taito CLI
 
 - Make an existing skill customizable
 
@@ -21,16 +21,16 @@ This skill helps you work with Agent Skills and the Skillz CLI. Use it when you 
 
 ```bash
 # Install from GitHub
-skillz add owner/repo
+taito add owner/repo
 
 # Install for cursor
-skillz add owner/repo --agent cursor
+taito add owner/repo --agent cursor
 
 # List installed skills
-skillz list
+taito list
 
 # Remove a skill
-skillz remove skill-name
+taito remove skill-name
 ```
 
 ### Skill Structure
@@ -45,12 +45,12 @@ my-skill/
 └── assets/           # Optional: templates, resources
 ```
 
-A customizable skill adds a `.skillz/` folder:
+A customizable skill adds a `.taito/` folder:
 
 ```
 my-skill/
 ├── SKILL.md          # Default output (for standard CLIs)
-├── .skillz/
+├── .taito/
 │   ├── skill.config.toml   # Variable definitions
 │   └── SKILL.md.ejs        # Template
 ```
@@ -61,9 +61,9 @@ For comprehensive guidance, read the appropriate reference:
 
 - [AUTHORING-SKILLS.md](references/AUTHORING-SKILLS.md) - How to write effective Agent Skills following the specification
 
-- [CUSTOMIZABLE-SKILLS.md](references/CUSTOMIZABLE-SKILLS.md) - The `.skillz/` format for project-specific customization
+- [CUSTOMIZABLE-SKILLS.md](references/CUSTOMIZABLE-SKILLS.md) - The `.taito/` format for project-specific customization
 
-- [SKILLZ-CLI.md](references/SKILLZ-CLI.md) - Complete CLI command reference
+- [TAITO-CLI.md](references/TAITO-CLI.md) - Complete CLI command reference
 
 - [CONVERTING-SKILLS.md](references/CONVERTING-SKILLS.md) - Step-by-step guide to make standard skills customizable
 

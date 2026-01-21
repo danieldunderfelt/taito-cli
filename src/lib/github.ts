@@ -51,7 +51,7 @@ export async function fetchFromGitHub(source: SkillSource): Promise<string> {
   const tarballUrl = `https://codeload.github.com/${owner}/${repo}/tar.gz/${ref}`
 
   // Create temp directory
-  const tempDir = mkdtempSync(join(tmpdir(), 'skillz-'))
+  const tempDir = mkdtempSync(join(tmpdir(), 'taito-'))
 
   try {
     // Fetch the tarball
