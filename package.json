@@ -1,0 +1,26 @@
+{
+  "name": "skillz",
+  "version": "0.1.0",
+  "description": "CLI for installing customizable Agent Skills from GitHub",
+  "type": "module",
+  "bin": {
+    "skillz": "./bin/skillz.ts"
+  },
+  "scripts": {
+    "dev": "bun run bin/skillz.ts",
+    "build": "bun build ./bin/skillz.ts --outdir ./dist --target node",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.9.1",
+    "commander": "^13.1.0",
+    "ejs": "^3.1.10",
+    "smol-toml": "^1.3.1",
+    "tar": "^7.4.3"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.4",
+    "@types/ejs": "^3.1.5",
+    "typescript": "^5.7.3"
+  }
+}

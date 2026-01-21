@@ -1,0 +1,56 @@
+#!/usr/bin/env bun
+import { Command } from "commander";
+import { addCommand } from "../src/commands/add.js";
+import { listCommand } from "../src/commands/list.js";
+import { removeCommand } from "../src/commands/remove.js";
+import { buildCommand } from "../src/commands/build.js";
+
+const program = new Command();
+
+program
+  .name("skillz")
+  .description("CLI for installing customizable Agent Skills")
+  .version("0.1.0");
+
+program
+  .command("add <source>")
+  .description("Install a skill from GitHub (owner/repo) or local path")
+  .option("-c, --config <path>", "Path to preset config file (TOML)")
+  .option("-d, --dry-run", "Preview changes without writing files")
+  .option("-o, --output <path>", "Custom output directory")
+  .option("-r, --ref <ref>", "Git ref (branch, tag, or commit)")
+  .action(async (source: string, options) => {
+    await addCommand(source, {
+      config: options.config,
+      dryRun: options.dryRun,
+      output: options.output,
+      ref: options.ref,
+    });
+  });
+
+program
+  .command("list")
+  .description("List installed skills")
+  .action(async () => {
+    await listCommand();
+  });
+
+program
+  .command("remove <name>")
+  .alias("rm")
+  .description("Remove an installed skill")
+  .action(async (name: string) => {
+    await removeCommand(name);
+  });
+
+program
+  .command("build [path]")
+  .description("Build default files from .skillz/ templates (for skill authors)")
+  .option("-o, --output <path>", "Custom output directory")
+  .action(async (path: string | undefined, options) => {
+    await buildCommand(path, {
+      output: options.output,
+    });
+  });
+
+program.parse();

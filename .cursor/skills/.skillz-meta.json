@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "skills": [
+    {
+      "name": "react-localization",
+      "source": "./test-skills/react-localization",
+      "installedAt": "2026-01-21T08:57:32.436Z",
+      "customized": true,
+      "variables": {
+        "SOURCE_LANGUAGE": "Finnish",
+        "SOURCE_LANGUAGE_CODE": "fi",
+        "TRANSLATION_PATH": "src/i18n/{{namespace}}/{{language}}.json",
+        "I18N_IMPORT": "@aikoa/i18n/react",
+        "T_FUNCTION_FORMAT": "callback",
+        "SUPPORTED_LANGUAGES": [
+          "fi",
+          "en",
+          "sv"
+        ],
+        "ESLINT_CONFIG": "eslint.i18n.config.js",
+        "LINT_COMMAND": "bun run lint",
+        "TYPECHECK_COMMAND": "bun run tsc:check",
+        "PACKAGE_MANAGER": "bun",
+        "SOURCE_GLOB": "apps/app/src/**/*.{ts,tsx}",
+        "TYPES_COMMAND": "bunx i18next-cli types"
+      }
+    }
+  ]
+}
