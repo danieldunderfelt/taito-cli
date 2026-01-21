@@ -1,0 +1,221 @@
+# Skillz CLI Reference
+
+The Skillz CLI installs Agent Skills from GitHub with support for customization. This reference covers all commands and options.
+
+## Installation
+
+```bash
+# Using npm
+npm install -g skillz
+
+# Or run directly with npx/bunx/pnpx
+npx skillz add owner/repo
+bunx skillz add owner/repo
+```
+
+## Commands
+
+### skillz add
+
+Install a skill from GitHub or a local path.
+
+```bash
+# From GitHub (auto-detects agent)
+skillz add owner/repo
+skillz add owner/repo@v1.0.0  # specific tag/branch
+
+# For cursor
+skillz add owner/repo --agent cursor
+
+# From local path
+skillz add ./path/to/skill
+
+# With preset configuration (non-interactive)
+skillz add owner/repo --config ./answers.toml
+
+# Preview without writing
+skillz add owner/repo --dry-run
+
+# Custom output directory
+skillz add owner/repo --output ./custom/path
+
+# Specific git ref
+skillz add owner/repo --ref main
+
+# Install globally (agent-dependent)
+skillz add owner/repo --global
+```
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `--agent <name>` | Target a specific agent (cursor, windsurf, claude-code, etc.) |
+| `--config <path>` | Path to preset TOML config for non-interactive installation |
+| `--dry-run` | Preview changes without writing files |
+| `--output <path>` | Custom output directory (bypasses agent detection) |
+| `--ref <ref>` | Specific git ref (branch, tag, commit) |
+| `--global` | Install to agent's global directory |
+
+### skillz list
+
+List all installed skills across all detected agents.
+
+```bash
+skillz list
+```
+
+Example output:
+
+```
+Cursor (2 skills):
+  react-localization (customized)
+    Source: aikoa/react-localization
+    Installed: 1/21/2026
+
+  code-review
+    Source: vercel-labs/agent-skills
+    Installed: 1/20/2026
+
+  Directory: /path/to/.cursor/skills
+```
+
+### skillz remove
+
+Remove an installed skill.
+
+```bash
+skillz remove skill-name
+```
+
+If the skill is installed for multiple agents, you'll be prompted to choose which one to remove from.
+
+### skillz build
+
+For skill authors: regenerate default files from `.skillz/` templates using default values.
+
+```bash
+# Build in current directory
+skillz build
+
+# Build specific skill
+skillz build ./my-skill/
+```
+
+This keeps skills compatible with CLIs that don't support customization by ensuring root-level files stay in sync with templates.
+
+## Multi-Agent Support
+
+The CLI automatically detects which AI coding assistant you're using and installs skills to the correct location.
+
+### Supported Agents
+
+| Agent | Skills Directory |
+|-------|-----------------|
+| Cursor | `.cursor/skills/` |
+| Windsurf | `.windsurf/skills/` |
+| Claude Code | `.claude/skills/` |
+| Codex | `.codex/skills/` |
+| OpenCode | `.opencode/skill/` |
+| GitHub Copilot | `.github/skills/` |
+| VS Code | `.github/skills/` |
+| Gemini CLI | `.gemini/skills/` |
+| Goose | `.agents/skills/` |
+| AMP | `.agents/skills/` |
+| Trae | `.trae/skills/` |
+| Antigravity | `.agent/skills/` |
+
+### Detection Behavior
+
+```bash
+# Single agent detected - installs automatically
+$ skillz add owner/repo
+✓ Detected agent: Cursor
+✓ Installing to .cursor/skills/...
+
+# Multiple agents detected - prompts for choice
+$ skillz add owner/repo
+✓ Multiple agents detected: Cursor, Windsurf
+? Which agent do you want to install the skill for?
+  > Cursor
+    Windsurf
+
+# Force specific agent
+$ skillz add owner/repo --agent cursor
+✓ Installing to .cursor/skills/...
+```
+
+## Private Repositories
+
+For private GitHub repositories, set the `GITHUB_TOKEN` environment variable:
+
+```bash
+export GITHUB_TOKEN=ghp_xxxxxxxxxxxx
+skillz add private-org/private-skill
+```
+
+## Workspace Detection
+
+The workspace root is detected by looking for (in order):
+
+1. Agent-specific directories (`.cursor`, `.windsurf`, etc.)
+2. `.git/` directory
+3. `package.json`
+4. Current working directory (fallback)
+
+## Global Installation
+
+Some agents support global installation:
+
+```bash
+skillz add owner/repo --global
+```
+
+This installs to the agent's global directory (typically in your home directory) instead of the project-local directory.
+
+## Preset Configuration
+
+For CI/CD or team-wide configurations, create a TOML file with preset values:
+
+```toml
+# team-config.toml
+PROJECT_NAME = "acme-app"
+FRAMEWORK = "react"
+USE_TYPESCRIPT = true
+SUPPORTED_LANGUAGES = ["en", "es", "fr", "de"]
+```
+
+Then install non-interactively:
+
+```bash
+skillz add owner/repo --config ./team-config.toml
+```
+
+## Standard vs Customizable Skills
+
+The CLI handles both types transparently:
+
+- **Standard skills**: Copies `SKILL.md`, `scripts/`, `references/`, `assets/`, and `rules/` to the output directory
+- **Customizable skills**: Detects `.skillz/skill.config.toml`, prompts for values, renders templates, then outputs the customized files
+
+## Metadata Tracking
+
+Installed skills are tracked in `.skillz-meta.json` in the skills directory:
+
+```json
+{
+  "version": "1.0",
+  "skills": [
+    {
+      "name": "react-localization",
+      "source": "aikoa/react-localization",
+      "installedAt": "2026-01-21T10:30:00.000Z",
+      "customized": true,
+      "variables": {
+        "PROJECT_NAME": "my-app",
+        "FRAMEWORK": "react"
+      }
+    }
+  ]
+}
+```

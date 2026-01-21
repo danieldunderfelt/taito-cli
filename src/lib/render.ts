@@ -6,7 +6,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs'
-import { dirname, join, relative } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import ejs from 'ejs'
 import type { VariableValues } from '../types.js'
 
@@ -171,26 +171,28 @@ function collectAllFiles(dir: string): string[] {
  */
 export async function renderWithDefaults(
   skillDir: string,
-  values: VariableValues
+  values: VariableValues,
+  outputDir?: string
 ): Promise<string[]> {
   const skillzDir = join(skillDir, '.skillz')
+  const targetDir = outputDir ? resolve(outputDir) : skillDir
   const renderedFiles: string[] = []
 
   // Collect all template files from .skillz/
   const templateFiles = collectFiles(skillzDir, '.ejs')
 
-  // Process each template, writing to parent directory
+  // Process each template, writing to target directory
   for (const templatePath of templateFiles) {
     const relativePath = relative(skillzDir, templatePath)
-    // Remove .ejs extension and write to skill root
-    const outputPath = join(skillDir, relativePath.replace(/\.ejs$/, ''))
+    // Remove .ejs extension and write to target directory
+    const outputPath = join(targetDir, relativePath.replace(/\.ejs$/, ''))
 
     const rendered = await renderTemplate(templatePath, values)
 
     mkdirSync(dirname(outputPath), { recursive: true })
     writeFileSync(outputPath, rendered)
 
-    renderedFiles.push(relative(skillDir, outputPath))
+    renderedFiles.push(relative(targetDir, outputPath))
   }
 
   return renderedFiles

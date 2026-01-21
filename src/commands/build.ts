@@ -50,11 +50,12 @@ export async function buildCommand(
 
     // Render templates with defaults
     spinner.start('Rendering templates...')
-    const files = await renderWithDefaults(skillDir, defaults)
+    const files = await renderWithDefaults(skillDir, defaults, options.output)
     spinner.stop('Templates rendered!')
 
     // Show results
-    p.log.success('Generated files:')
+    const outputLocation = options.output ? resolve(options.output) : skillDir
+    p.log.success(`Generated files in ${outputLocation}:`)
     for (const file of files) {
       p.log.message(`  ${file}`)
     }
