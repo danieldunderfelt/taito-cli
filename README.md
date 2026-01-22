@@ -14,6 +14,8 @@ As for features, I can add pretty much anything the other CLI's support. If you 
 
 I really hope that they do.
 
+Oh btw, "taito" is the Finnish word for "skill". In case you were wondering.
+
 ## Installation
 
 ```bash
