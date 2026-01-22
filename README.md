@@ -1,8 +1,18 @@
-# taito
+# Taito CLI
 
 A CLI for installing customizable [Agent Skills](https://agentskills.io) from GitHub.
 
 Agent Skills are instructions that AI coding assistants can follow to perform specific tasks. The `taito` CLI extends the standard Agent Skills format with support for **customizable skills** that adapt to your project's specific configuration during installation.
+
+## Why Taito?
+
+There are a few CLI tools for managing agent skills, such as [Vercel's skills CLI](https://skills.sh) and [Agent Skills Manager](https://www.agentskills.in/). However, none of them support customizable skills. If you make a cool skill for your project, it probably has a few project-specific details that won't work for other projects which makes sharing it with other developers difficult. Each developer who adds your skill would need to manually edit the skill to make it work for their project.
+
+Taito makes it easy to customize skills to your project's specific details, while maintaining installability with other CLIs that don't support customization. Simply write your skill, add the Taito skill from this repository (`taito add danieldunderfelt/taito-cli`), and ask your AI agent to make it customizable in the Taito format. Then anyone who adds your skill will be able to customize it to their project's specific details.
+
+As for features, I can add pretty much anything the other CLI's support. If you have a feature request, please open an issue. Yes, that means they can also add customizable skills as well.
+
+I really hope that they do.
 
 ## Installation
 
@@ -40,14 +50,14 @@ The npm package uses a shell script launcher that works natively on macOS and Li
 
 ```bash
 # Install a skill from GitHub (auto-detects your agent)
-taito add aikoa/react-localization
+taito add aikoa-platform/agent-skills
 
 # Install for a specific agent
-taito add aikoa/react-localization --agent cursor
-taito add aikoa/react-localization --agent windsurf
+taito add aikoa-platform/agent-skills --agent cursor
+taito add aikoa-platform/agent-skills --agent windsurf
 
 # Install with preset configuration (non-interactive)
-taito add aikoa/react-localization --config ./my-config.toml
+taito add aikoa-platform/agent-skills --config ./my-config.toml
 
 # List installed skills (shows all detected agents)
 taito list
@@ -138,7 +148,7 @@ Output:
 ```
 Cursor (1 skill):
   react-localization (customized)
-    Source: aikoa/react-localization
+    Source: aikoa-platform/agent-skills
     Installed: 1/21/2026
 
   Directory: /path/to/.cursor/skills
