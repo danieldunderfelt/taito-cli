@@ -56,12 +56,12 @@ taito add aikoa-platform/agent-skills
 
 # Install for a specific agent
 taito add aikoa-platform/agent-skills --agent cursor
-taito add aikoa-platform/agent-skills --agent windsurf
+taito add aikoa-platform/agent-skills --agent opencode
 
 # Install with preset configuration (non-interactive)
 taito add aikoa-platform/agent-skills --config ./my-config.toml
 
-# List installed skills (shows all detected agents)
+# List installed skills
 taito list
 
 # Remove a skill
