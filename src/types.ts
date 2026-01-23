@@ -114,6 +114,7 @@ export interface SkillSource {
   repo?: string // GitHub repo
   ref?: string // git ref
   path?: string // local path
+  skillPath?: string // path to specific skill within repo (e.g., "agent-skills/react-localization")
 }
 
 /**

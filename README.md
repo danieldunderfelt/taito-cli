@@ -54,9 +54,10 @@ The npm package uses a shell script launcher that works natively on macOS and Li
 # Install a skill from GitHub (auto-detects your agent)
 taito add aikoa-platform/agent-skills
 
-# Install for a specific agent
+# Install a specific skill from a repo containing multiple skills
+taito add aikoa-platform/agent-skills/react-localization
+
 taito add aikoa-platform/agent-skills --agent cursor
-taito add aikoa-platform/agent-skills --agent opencode
 
 # Install with preset configuration (non-interactive)
 taito add aikoa-platform/agent-skills --config ./my-config.toml
@@ -122,9 +123,13 @@ Install a skill from GitHub or a local path.
 taito add owner/repo
 taito add owner/repo@v1.0.0  # specific tag/branch
 
-# Install for specific agent
+# Install a specific skill from a multi-skill repo
+taito add owner/repo/path/to/skill
+taito add owner/repo/path/to/skill@v1.0.0
+
+# Install for specific agent (case-insensitive)
 taito add owner/repo --agent cursor
-taito add owner/repo --agent opencode
+taito add owner/repo --agent ClaudeCode
 
 # From local path
 taito add ./path/to/skill
@@ -255,6 +260,50 @@ default = ["en", "es"]
 | `choice`  | Select menu          | `string`   |
 | `boolean` | Yes/No confirm       | `boolean`  |
 | `array`   | Comma-separated text | `string[]` |
+
+### Variable Interpolation
+
+Variables can reference each other using `${VAR_NAME}` syntax. This allows later questions to use answers from earlier questions in their prompts or default values:
+
+```toml
+[meta]
+name = "my-skill"
+
+[variables.PACKAGE_MANAGER]
+type = "choice"
+prompt = "Which package manager do you use?"
+default = "npm"
+
+  [[variables.PACKAGE_MANAGER.options]]
+  value = "npm"
+  label = "npm"
+
+  [[variables.PACKAGE_MANAGER.options]]
+  value = "yarn"
+  label = "yarn"
+
+  [[variables.PACKAGE_MANAGER.options]]
+  value = "pnpm"
+  label = "pnpm"
+
+[variables.LINT_COMMAND]
+type = "string"
+prompt = "What command runs your linter?"
+default = "${PACKAGE_MANAGER} run lint"
+
+[variables.TEST_COMMAND]
+type = "string"
+prompt = "What command runs your tests?"
+default = "${PACKAGE_MANAGER} run test"
+```
+
+When the user selects `pnpm` as their package manager, the default for `LINT_COMMAND` will be shown as `pnpm run lint`.
+
+Interpolation works in:
+
+- `prompt` - the question shown to the user
+- `default` - the default value for string and choice variables
+- Choice option `label` values
 
 ### Template Format
 

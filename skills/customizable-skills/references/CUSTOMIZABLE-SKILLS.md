@@ -134,6 +134,50 @@ prompt = "Which languages do you support? (comma-separated)"
 default = ["en", "es"]
 ```
 
+## Variable Interpolation
+
+Variables can reference each other using `${VAR_NAME}` syntax. This allows later questions to dynamically use answers from earlier questions:
+
+```toml
+[variables.PACKAGE_MANAGER]
+type = "choice"
+prompt = "Which package manager do you use?"
+default = "npm"
+
+  [[variables.PACKAGE_MANAGER.options]]
+  value = "npm"
+  label = "npm"
+
+  [[variables.PACKAGE_MANAGER.options]]
+  value = "pnpm"
+  label = "pnpm"
+
+[variables.LINT_COMMAND]
+type = "string"
+prompt = "What command runs your linter?"
+default = "${PACKAGE_MANAGER} run lint"
+
+[variables.BUILD_COMMAND]
+type = "string"
+prompt = "What command builds your project?"
+default = "${PACKAGE_MANAGER} run build"
+```
+
+When the user selects `pnpm`, the defaults become `pnpm run lint` and `pnpm run build`.
+
+### Where Interpolation Works
+
+- `prompt` - The question shown to the user
+- `default` - Default values for string and choice variables
+- Choice option `label` - Labels shown in select menus
+
+### Interpolation Rules
+
+- Use `${VAR_NAME}` syntax to reference a variable
+- Variables are processed in order, so you can only reference variables defined earlier
+- If a referenced variable doesn't exist yet, the token is kept as-is
+- Array values are joined with ", " when interpolated into strings
+
 ## Template Format
 
 Templates use [EJS](https://ejs.co/) (Embedded JavaScript) syntax. Variables from the config are available directly.

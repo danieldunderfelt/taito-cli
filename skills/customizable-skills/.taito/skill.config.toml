@@ -34,8 +34,8 @@ default = "cursor"
 
 [variables.SKILLS_DIRECTORY]
 type = "string"
-prompt = "Where do you store your skills? (relative path)"
-default = ".cursor/skills"
+prompt = "Where do you store your ${PREFERRED_AGENT} skills? (relative path)"
+default = ".${PREFERRED_AGENT}/skills"
 
 [variables.FOCUS_AREAS]
 type = "array"

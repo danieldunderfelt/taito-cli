@@ -67,7 +67,7 @@ export async function addCommand(
 
     try {
       // Discover all skills in the repository
-      const discoveredSkills = discoverSkills(repoDir)
+      let discoveredSkills = discoverSkills(repoDir)
 
       if (discoveredSkills.length === 0) {
         p.log.error('No skills found in repository')
@@ -75,20 +75,52 @@ export async function addCommand(
         process.exit(1)
       }
 
+      // If a specific skill path was requested, filter to that skill
+      if (skillSource.skillPath) {
+        const requestedPath = skillSource.skillPath
+        const matchedSkill = discoveredSkills.find((skill) => {
+          // Get the relative path from repo root
+          const relativePath = skill.path.replace(repoDir + '/', '')
+          return (
+            relativePath === requestedPath ||
+            relativePath.endsWith('/' + requestedPath) ||
+            skill.dirName === requestedPath.split('/').pop()
+          )
+        })
+
+        if (!matchedSkill) {
+          p.log.error(`Skill not found at path: ${requestedPath}`)
+          p.log.message('Available skills in this repository:')
+          for (const skill of discoveredSkills) {
+            const relativePath = skill.path.replace(repoDir + '/', '')
+            p.log.message(`  - ${relativePath}`)
+          }
+          process.exit(1)
+        }
+
+        discoveredSkills = [matchedSkill]
+      }
+
       // Detect or select agent
       const workspaceRoot = findWorkspaceRoot()
       let agent: AgentType | undefined
 
       if (options.agent) {
-        // Validate specified agent
-        if (!(options.agent in agentConfigs)) {
+        // Find agent case-insensitively
+        const normalizedInput = options.agent.toLowerCase()
+
+        const matchedAgent = Object.keys(agentConfigs).find(
+          (key) => key.toLowerCase() === normalizedInput
+        ) as AgentType | undefined
+
+        if (!matchedAgent) {
           p.log.error(`Unknown agent: ${options.agent}`)
           p.log.message(
             `Available agents: ${Object.keys(agentConfigs).join(', ')}`
           )
           process.exit(1)
         }
-        agent = options.agent as AgentType
+        agent = matchedAgent
       } else if (!options.output) {
         // Auto-detect agent if no custom output specified
         const detectedAgents = detectAllAgents(workspaceRoot)
@@ -203,10 +235,9 @@ async function installSingleSkill(
 
     // Get values from preset config or prompt user
     if (options.config) {
-      values = parsePresetConfig(options.config)
-      // Merge with defaults for any missing values
-      const defaults = getDefaultValues(config)
-      values = { ...defaults, ...values }
+      const presetValues = parsePresetConfig(options.config)
+      // Get defaults with interpolation, using preset values for reference
+      values = getDefaultValues(config, presetValues)
     } else {
       values = await promptForVariables(config)
     }

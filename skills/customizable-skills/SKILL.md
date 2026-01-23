@@ -23,7 +23,10 @@ This skill helps you work with Agent Skills and the Taito CLI. Use it when you n
 # Install from GitHub
 taito add owner/repo
 
-# Install for cursor
+# Install a specific skill from a multi-skill repo
+taito add owner/repo/path/to/skill
+
+# Install for cursor (agent names are case-insensitive)
 taito add owner/repo --agent cursor
 
 # List installed skills
@@ -98,6 +101,25 @@ Instructions for the agent...
 Good: `Extract text and tables from PDF files, fill forms, merge documents. Use when working with PDF documents or when the user mentions PDFs, forms, or document extraction.`
 
 Poor: `Helps with PDFs.`
+
+## Variable Interpolation
+
+Variables in `skill.config.toml` can reference each other using `${VAR_NAME}` syntax:
+
+```toml
+[variables.PACKAGE_MANAGER]
+type = "choice"
+prompt = "Which package manager?"
+default = "npm"
+# ... options ...
+
+[variables.LINT_COMMAND]
+type = "string"
+prompt = "Lint command?"
+default = "${PACKAGE_MANAGER} run lint"
+```
+
+This allows dynamic defaults based on previous answers.
 
 ## Your Skills Location
 

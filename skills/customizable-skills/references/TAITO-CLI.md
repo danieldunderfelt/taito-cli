@@ -24,7 +24,10 @@ Install a skill from GitHub or a local path.
 taito add owner/repo
 taito add owner/repo@v1.0.0  # specific tag/branch
 
-# For cursor
+# Install a specific skill from a multi-skill repo
+taito add owner/repo/path/to/skill
+
+# For cursor (agent names are case-insensitive)
 taito add owner/repo --agent cursor
 
 # From local path
@@ -48,14 +51,14 @@ taito add owner/repo --global
 
 #### Options
 
-| Option            | Description                                                   |
-| ----------------- | ------------------------------------------------------------- |
-| `--agent <name>`  | Target a specific agent (cursor, windsurf, claude-code, etc.) |
-| `--config <path>` | Path to preset TOML config for non-interactive installation   |
-| `--dry-run`       | Preview changes without writing files                         |
-| `--output <path>` | Custom output directory (bypasses agent detection)            |
-| `--ref <ref>`     | Specific git ref (branch, tag, commit)                        |
-| `--global`        | Install to agent's global directory                           |
+| Option            | Description                                                             |
+| ----------------- | ----------------------------------------------------------------------- |
+| `--agent <name>`  | Target a specific agent (case-insensitive: cursor, Cursor, CURSOR, etc) |
+| `--config <path>` | Path to preset TOML config for non-interactive installation             |
+| `--dry-run`       | Preview changes without writing files                                   |
+| `--output <path>` | Custom output directory (bypasses agent detection)                      |
+| `--ref <ref>`     | Specific git ref (branch, tag, commit)                                  |
+| `--global`        | Install to agent's global directory                                     |
 
 ### taito list
 

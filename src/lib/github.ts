@@ -7,7 +7,7 @@ import { extract } from 'tar'
 import type { SkillSource } from '../types.js'
 
 /**
- * Parse a skill source string (owner/repo or local path)
+ * Parse a skill source string (owner/repo, owner/repo/path/to/skill, or local path)
  */
 export function parseSkillSource(source: string, ref?: string): SkillSource {
   // Check if it's a local path
@@ -22,19 +22,24 @@ export function parseSkillSource(source: string, ref?: string): SkillSource {
     }
   }
 
-  // Parse as GitHub owner/repo
-  const match = source.match(/^([^/]+)\/([^/@]+)(?:@(.+))?$/)
+  // Parse as GitHub owner/repo with optional path and ref
+  // Format: owner/repo[/path/to/skill][@ref]
+  const match = source.match(/^([^/]+)\/([^/@]+)(\/[^@]+)?(?:@(.+))?$/)
   if (!match) {
     throw new Error(
-      `Invalid skill source: "${source}". Expected format: owner/repo or owner/repo@ref`
+      `Invalid skill source: "${source}". Expected format: owner/repo, owner/repo/path/to/skill, or owner/repo@ref`
     )
   }
+
+  // Extract skill path (remove leading slash if present)
+  const skillPath = match[3] ? match[3].slice(1) : undefined
 
   return {
     type: 'github',
     owner: match[1],
     repo: match[2],
-    ref: ref ?? match[3] ?? 'main',
+    ref: ref ?? match[4] ?? 'main',
+    skillPath,
   }
 }
 

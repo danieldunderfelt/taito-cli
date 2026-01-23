@@ -12,6 +12,71 @@ export function clearVariableCache(): void {
 }
 
 /**
+ * Interpolate ${VAR} tokens in a string with values from the provided object
+ * Supports nested references and falls back to empty string for undefined values
+ */
+export function interpolate(template: string, values: VariableValues): string {
+  return template.replace(/\$\{([^}]+)\}/g, (match, varName) => {
+    const value = values[varName.trim()]
+    if (value === undefined) {
+      return match // Keep original if not found
+    }
+    if (Array.isArray(value)) {
+      return value.join(', ')
+    }
+    return String(value)
+  })
+}
+
+/**
+ * Interpolate values in a variable definition (prompt, default, options)
+ */
+function interpolateVariable(
+  variable: Variable,
+  values: VariableValues
+): Variable {
+  const interpolatedPrompt = interpolate(variable.prompt, values)
+
+  switch (variable.type) {
+    case 'string':
+      return {
+        ...variable,
+        prompt: interpolatedPrompt,
+        default:
+          variable.default !== undefined
+            ? interpolate(variable.default, values)
+            : undefined,
+      }
+
+    case 'choice':
+      return {
+        ...variable,
+        prompt: interpolatedPrompt,
+        default:
+          variable.default !== undefined
+            ? interpolate(variable.default, values)
+            : undefined,
+        options: variable.options.map((opt) => ({
+          value: opt.value,
+          label: interpolate(opt.label, values),
+        })),
+      }
+
+    case 'boolean':
+      return {
+        ...variable,
+        prompt: interpolatedPrompt,
+      }
+
+    case 'array':
+      return {
+        ...variable,
+        prompt: interpolatedPrompt,
+      }
+  }
+}
+
+/**
  * Prompt user for all variables in a skill config
  */
 export async function promptForVariables(
@@ -36,9 +101,16 @@ export async function promptForVariables(
       continue
     }
 
+    // Interpolate variable definition with already-collected values
+    const interpolatedVariable = interpolateVariable(variable, values)
+
     // Check cache for previously answered value
     const cachedValue = sessionVariableCache[key]
-    const value = await promptForVariable(key, variable, cachedValue)
+    const value = await promptForVariable(
+      key,
+      interpolatedVariable,
+      cachedValue
+    )
 
     // Check if user cancelled
     if (p.isCancel(value)) {

@@ -162,14 +162,50 @@ function parseChoiceOptions(options: unknown, varName: string): ChoiceOption[] {
 }
 
 /**
- * Extract default values from config
+ * Interpolate ${VAR} tokens in a string with values from the provided object
  */
-export function getDefaultValues(config: SkillConfig): VariableValues {
+function interpolateString(template: string, values: VariableValues): string {
+  return template.replace(/\$\{([^}]+)\}/g, (match, varName) => {
+    const value = values[varName.trim()]
+    if (value === undefined) {
+      return match // Keep original if not found
+    }
+    if (Array.isArray(value)) {
+      return value.join(', ')
+    }
+    return String(value)
+  })
+}
+
+/**
+ * Extract default values from config with interpolation support
+ * Processes variables in order so later defaults can reference earlier values
+ */
+export function getDefaultValues(
+  config: SkillConfig,
+  presetValues?: VariableValues
+): VariableValues {
   const values: VariableValues = {}
 
   for (const [key, variable] of Object.entries(config.variables)) {
+    // If preset value exists, use it (allows interpolation to work with user-provided values)
+    if (presetValues && key in presetValues) {
+      values[key] = presetValues[key]
+      continue
+    }
+
+    // Process default with interpolation
     if (variable.default !== undefined) {
-      values[key] = variable.default
+      if (variable.type === 'string' && typeof variable.default === 'string') {
+        values[key] = interpolateString(variable.default, values)
+      } else if (
+        variable.type === 'choice' &&
+        typeof variable.default === 'string'
+      ) {
+        values[key] = interpolateString(variable.default, values)
+      } else {
+        values[key] = variable.default
+      }
     }
   }
 
