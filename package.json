@@ -1,6 +1,6 @@
 {
   "name": "taito-cli",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "CLI for installing customizable Agent Skills from GitHub.",
   "type": "module",
   "license": "MIT",
