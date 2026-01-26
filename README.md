@@ -78,6 +78,7 @@ taito remove react-localization
 - **Cursor** (`.cursor/skills/`)
 - **Windsurf** (`.windsurf/skills/`)
 - **Claude Code** (`.claude/skills/`)
+- **Clawdbot** (`<workspace>/skills/`) - uses [ClawdHub workspace discovery](https://docs.clawd.bot/tools/clawdhub)
 - **Codex** (`.codex/skills/`)
 - **OpenCode** (`.opencode/skill/`)
 - **GitHub Copilot** (`.github/skills/`)
@@ -426,6 +427,20 @@ The workspace root is detected by looking for:
 2. `.git/` directory
 3. `package.json`
 4. Current working directory (fallback)
+
+### Clawdbot Workspace Discovery
+
+Clawdbot uses a unique workspace model. Unlike other agents that store skills in a hidden directory (e.g., `.cursor/skills/`), Clawdbot stores skills in `<workspace>/skills/`. When installing for Clawdbot, `taito` follows the official ClawdHub workspace discovery chain:
+
+1. `CLAWDHUB_WORKDIR` environment variable (if set)
+2. Current directory (if it contains `.clawdhub/` marker)
+3. Clawdbot's configured default workspace from `~/.clawdbot/clawdbot.json`:
+   - `agents.defaults.workspace` (or legacy `agent.workspace`)
+   - Agent marked `default: true`
+   - Agent with id `main`
+4. Current directory (fallback)
+
+This ensures skills are installed to the same location that Clawdbot's `clawdhub` CLI would use.
 
 ### Global Installation
 

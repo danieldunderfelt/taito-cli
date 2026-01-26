@@ -1,0 +1,4 @@
+[meta]
+name = "skill-installer"
+version = "1.0.0"
+description = "Install Agent Skills with the Taito CLI"

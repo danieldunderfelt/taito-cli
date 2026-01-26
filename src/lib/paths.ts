@@ -1,9 +1,11 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
+import JSON5 from 'json5'
 
 export type AgentType =
   | 'claudeCode'
+  | 'clawdbot'
   | 'codex'
   | 'cursor'
   | 'opencode'
@@ -32,6 +34,11 @@ export const agentConfigs: Record<AgentType, AgentConfig> = {
     localPath: '.claude/skills',
     globalPath: join(homedir(), '.claude', 'skills'),
     marker: '.claude',
+  },
+  clawdbot: {
+    name: 'Clawdbot',
+    localPath: 'skills', // Clawdbot uses <workspace>/skills, not a hidden directory
+    marker: '.clawdhub',
   },
   codex: {
     name: 'Codex',
@@ -142,6 +149,7 @@ export function detectAgent(workspaceRoot?: string): AgentType | null {
   const checkOrder: AgentType[] = [
     'cursor',
     'claudeCode',
+    'clawdbot',
     'windsurf',
     'opencode',
     'codex',
@@ -181,6 +189,114 @@ export function detectAllAgents(workspaceRoot?: string): AgentType[] {
 }
 
 /**
+ * Clawdbot agent configuration interface
+ */
+interface ClawdbotAgentConfig {
+  id?: string
+  workspace?: string
+  default?: boolean
+}
+
+interface ClawdbotConfig {
+  agent?: {
+    workspace?: string
+  }
+  agents?: {
+    defaults?: {
+      workspace?: string
+    }
+    [key: string]: ClawdbotAgentConfig | { workspace?: string } | undefined
+  }
+}
+
+/**
+ * Discover Clawdbot workspace using the official fallback chain:
+ * 1. CLAWDHUB_WORKDIR environment variable
+ * 2. Current directory if it has .clawdhub marker
+ * 3. Clawdbot config file default workspace
+ * 4. Fallback to current directory
+ */
+export function discoverClawdbotWorkspace(): string {
+  const cwd = process.cwd()
+
+  // 1. Environment override
+  const envWorkdir = process.env.CLAWDHUB_WORKDIR
+  if (envWorkdir) {
+    return resolve(envWorkdir.trim())
+  }
+
+  // 2. Current directory if it has .clawdhub marker
+  if (
+    existsSync(join(cwd, '.clawdhub', 'lock.json')) ||
+    existsSync(join(cwd, '.clawdhub'))
+  ) {
+    return cwd
+  }
+
+  // 3. Try to read Clawdbot config for default workspace
+  const configPath = getClawdbotConfigPath()
+  if (configPath && existsSync(configPath)) {
+    try {
+      const configContent = readFileSync(configPath, 'utf-8')
+      const config = JSON5.parse(configContent) as ClawdbotConfig
+
+      // Check agents.defaults.workspace (or legacy agent.workspace)
+      const defaultWorkspace =
+        config.agents?.defaults?.workspace ?? config.agent?.workspace
+
+      if (defaultWorkspace) {
+        return resolve(defaultWorkspace)
+      }
+
+      // Check for agent marked default: true
+      if (config.agents) {
+        for (const [key, agentConfig] of Object.entries(config.agents)) {
+          if (key === 'defaults') continue
+          const agent = agentConfig as ClawdbotAgentConfig
+          if (agent.default === true && agent.workspace) {
+            return resolve(agent.workspace)
+          }
+        }
+
+        // Check for agent with id === "main"
+        for (const [key, agentConfig] of Object.entries(config.agents)) {
+          if (key === 'defaults') continue
+          const agent = agentConfig as ClawdbotAgentConfig
+          if ((agent.id === 'main' || key === 'main') && agent.workspace) {
+            return resolve(agent.workspace)
+          }
+        }
+      }
+    } catch {
+      // Config parsing failed, continue to fallback
+    }
+  }
+
+  // 4. Last fallback: current directory
+  return cwd
+}
+
+/**
+ * Get the path to Clawdbot's config file
+ */
+function getClawdbotConfigPath(): string | null {
+  // $CLAWDBOT_CONFIG_PATH if set
+  const configEnv = process.env.CLAWDBOT_CONFIG_PATH
+  if (configEnv) {
+    return configEnv
+  }
+
+  // $CLAWDBOT_STATE_DIR/clawdbot.json if state dir override is set
+  const stateDir = process.env.CLAWDBOT_STATE_DIR
+  if (stateDir) {
+    return join(stateDir, 'clawdbot.json')
+  }
+
+  // Default: ~/.clawdbot/clawdbot.json
+  return join(homedir(), '.clawdbot', 'clawdbot.json')
+}
+
+/**
  * Get the skills directory for a specific agent
  */
 export function getSkillsDir(
@@ -199,6 +315,12 @@ export function getSkillsDir(
       )
     }
     return config.globalPath
+  }
+
+  // Special handling for Clawdbot - use workspace discovery
+  if (agentType === 'clawdbot') {
+    const clawdbotWorkspace = discoverClawdbotWorkspace()
+    return join(clawdbotWorkspace, config.localPath)
   }
 
   const root = workspaceRoot ?? findWorkspaceRoot()
