@@ -163,6 +163,14 @@ export function detectAgent(workspaceRoot?: string): AgentType | null {
   ]
 
   for (const agentType of checkOrder) {
+    // Special handling for Clawdbot
+    if (agentType === 'clawdbot') {
+      if (isClawdbotAvailable(root)) {
+        return 'clawdbot'
+      }
+      continue
+    }
+
     const config = agentConfigs[agentType]
     if (config.marker && existsSync(join(root, config.marker))) {
       return agentType
@@ -180,12 +188,52 @@ export function detectAllAgents(workspaceRoot?: string): AgentType[] {
   const detected: AgentType[] = []
 
   for (const [agentType, config] of Object.entries(agentConfigs)) {
+    // Special handling for Clawdbot - check multiple indicators
+    if (agentType === 'clawdbot') {
+      if (isClawdbotAvailable(root)) {
+        detected.push('clawdbot')
+      }
+      continue
+    }
+
     if (config.marker && existsSync(join(root, config.marker))) {
       detected.push(agentType as AgentType)
     }
   }
 
   return detected
+}
+
+/**
+ * Check if Clawdbot is available/installed
+ * Clawdbot is considered available if:
+ * 1. CLAWDHUB_WORKDIR environment variable is set
+ * 2. Current directory has .clawdhub or .clawdbot marker
+ * 3. Clawdbot config file exists (~/.clawdbot/clawdbot.json)
+ */
+function isClawdbotAvailable(workspaceRoot: string): boolean {
+  // 1. CLAWDHUB_WORKDIR is set
+  if (process.env.CLAWDHUB_WORKDIR) {
+    return true
+  }
+
+  // 2. Check for markers in current workspace
+  // .clawdhub is the ClawdHub workspace marker
+  // .clawdbot is the Clawdbot agent config directory
+  if (
+    existsSync(join(workspaceRoot, '.clawdhub')) ||
+    existsSync(join(workspaceRoot, '.clawdbot'))
+  ) {
+    return true
+  }
+
+  // 3. Clawdbot config file exists (user has Clawdbot installed)
+  const configPath = getClawdbotConfigPath()
+  if (configPath && existsSync(configPath)) {
+    return true
+  }
+
+  return false
 }
 
 /**
@@ -225,10 +273,11 @@ export function discoverClawdbotWorkspace(): string {
     return resolve(envWorkdir.trim())
   }
 
-  // 2. Current directory if it has .clawdhub marker
+  // 2. Current directory if it has .clawdhub or .clawdbot marker
   if (
     existsSync(join(cwd, '.clawdhub', 'lock.json')) ||
-    existsSync(join(cwd, '.clawdhub'))
+    existsSync(join(cwd, '.clawdhub')) ||
+    existsSync(join(cwd, '.clawdbot'))
   ) {
     return cwd
   }
