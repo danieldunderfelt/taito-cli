@@ -13,7 +13,7 @@ Most boilerplate tools copy files once and leave you on your own. Taito template
 - **Updatable** — `taito update` pulls template changes into projects (three-way merge) or child templates (git merge)
 - **Skill-aware** — customizable skills inside a template run through the full skill customizer on project init
 
-Skill install still works the same way as before: `taito add owner/repo` auto-detects templates vs skills.
+`taito add owner/repo` auto-detects templates vs skills.
 
 ## Installation
 
@@ -51,9 +51,25 @@ If you keep a scaffold at `~/Work/project-template`:
 
 1. Ensure it is a **git repository**
 2. Add `.taito/template.config.toml` (minimum: `[meta]` with `name`)
-3. Optionally add `.taito/*.ejs` customization points for files like `AGENT.md`
+3. Optionally add `.taito/*.ejs` customization points for files like `AGENTS.md`
 4. Register: `taito add ~/Work/project-template`
 5. Init: `taito new project ./my-app -t project-template`
+
+You can also use the `/template-development` skill from this repo to scaffold a template with your favorite AI agent (steps 2-4 above).
+
+```bash
+taito add danieldunderfelt/taito-cli/skills/template-development --global
+# Invoke your favorite AI agent in the template directory
+> /template-development make this into a Taito template and add customization points
+```
+
+Templates can also be added from a GitHub repository:
+
+```bash
+taito add owner/template-repo
+```
+
+This will clone the repository into `~/.taito/templates/<name>/` and let you use it as a template with `taito new project -t <name>`.
 
 ## Quick Start — Skills
 
