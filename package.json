@@ -1,7 +1,7 @@
 {
   "name": "taito-cli",
   "version": "1.2.1",
-  "description": "CLI for installing customizable Agent Skills from GitHub.",
+  "description": "CLI for initializing projects from customizable templates and managing customizable Agent Skills.",
   "type": "module",
   "license": "MIT",
   "author": "Daniel Dunderfelt <daniel@developsuperpowers.com>",
@@ -11,6 +11,9 @@
   },
   "keywords": [
     "cli",
+    "project-template",
+    "boilerplate",
+    "scaffolding",
     "agent-skills",
     "cursor",
     "windsurf",
@@ -39,6 +42,7 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "typecheck": "tsc --noEmit",
+    "test": "bun test",
     "prepublishOnly": "bun run build"
   },
   "devDependencies": {

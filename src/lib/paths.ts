@@ -288,7 +288,7 @@ export function discoverClawdbotWorkspace(): string {
   if (configPath && existsSync(configPath)) {
     try {
       const configContent = readFileSync(configPath, 'utf-8')
-      const config = JSON5.parse(configContent) as ClawdbotConfig
+      const config: ClawdbotConfig = JSON5.parse(configContent)
 
       // Check agents.defaults.workspace (or legacy agent.workspace)
       const defaultWorkspace =
@@ -408,6 +408,13 @@ export function isCustomizableSkill(skillDir: string): boolean {
 }
 
 /**
+ * Check if a directory is a taito project template
+ */
+export function isCustomizableTemplate(dir: string): boolean {
+  return existsSync(join(dir, '.taito', 'template.config.toml'))
+}
+
+/**
  * Get the .taito config directory path
  */
 export function getTaitoConfigDir(skillDir: string): string {
@@ -420,3 +427,4 @@ export function getTaitoConfigDir(skillDir: string): string {
 export function getSkillConfigPath(skillDir: string): string {
   return join(skillDir, '.taito', 'skill.config.toml')
 }
+

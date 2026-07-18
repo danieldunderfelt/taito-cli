@@ -4,7 +4,10 @@ import { Command } from 'commander'
 import { addCommand } from '../src/commands/add.js'
 import { buildCommand } from '../src/commands/build.js'
 import { listCommand } from '../src/commands/list.js'
+import { newProjectCommand } from '../src/commands/new-project.js'
+import { newSkillCommand } from '../src/commands/new-skill.js'
 import { removeCommand } from '../src/commands/remove.js'
+import { updateCommand } from '../src/commands/update.js'
 
 // Version is injected at build time via --define
 declare const BUILD_VERSION: string
@@ -14,21 +17,35 @@ const program = new Command()
 
 program
   .name('taito')
-  .description('CLI for installing customizable Agent Skills')
+  .description(
+    'CLI for initializing projects from customizable templates and managing customizable Agent Skills'
+  )
   .version(version)
 
 program
   .command('add <source>')
-  .description('Install a skill from GitHub (owner/repo) or local path')
+  .description(
+    'Register a project template or install a skill (auto-detected from source)'
+  )
   .option('-c, --config <path>', 'Path to preset config file (TOML)')
   .option('-d, --dry-run', 'Preview changes without writing files')
-  .option('-o, --output <path>', 'Custom output directory')
+  .option('-o, --output <path>', 'Custom output directory (skills)')
   .option('-r, --ref <ref>', 'Git ref (branch, tag, or commit)')
   .option(
     '-a, --agent <agent>',
     'Target agent (cursor, claudeCode, windsurf, etc.)'
   )
-  .option('-g, --global', 'Install globally instead of locally')
+  .option('-g, --global', 'Install skill globally instead of locally')
+  .option(
+    '--duplicate <template>',
+    'Duplicate a registered template to <source> path'
+  )
+  .option(
+    '--extend <template>',
+    'Extend a registered template as a worktree at <source> path'
+  )
+  .option('-n, --name <name>', 'Override registered template name')
+  .option('-f, --force', 'Overwrite existing registration / non-empty dest')
   .action(async (source: string, options) => {
     await addCommand(source, {
       config: options.config,
@@ -37,12 +54,64 @@ program
       ref: options.ref,
       agent: options.agent,
       global: options.global,
+      duplicate: options.duplicate,
+      extend: options.extend,
+      name: options.name,
+      force: options.force,
+    })
+  })
+
+const newCmd = program
+  .command('new')
+  .description('Create a new project or skill')
+
+newCmd
+  .command('project [path]')
+  .description('Initialize a project from a registered template')
+  .requiredOption(
+    '-t, --template <name>',
+    'Registered template name to use'
+  )
+  .option('-c, --config <path>', 'Path to preset config file (TOML)')
+  .option('-f, --force', 'Continue even if destination is not empty')
+  .option('-d, --dry-run', 'Preview without writing files')
+  .option('-a, --agent <agent>', 'Agent for installing template skills')
+  .action(async (path: string | undefined, options) => {
+    await newProjectCommand(path ?? '.', {
+      template: options.template,
+      config: options.config,
+      force: options.force,
+      dryRun: options.dryRun,
+      agent: options.agent,
+    })
+  })
+
+newCmd
+  .command('skill [path]')
+  .description('Scaffold a new customizable skill package')
+  .option('-n, --name <name>', 'Skill name')
+  .option('--description <text>', 'Skill description')
+  .option('-f, --force', 'Overwrite existing files')
+  .action(async (path: string | undefined, options) => {
+    await newSkillCommand(path ?? '.', {
+      name: options.name,
+      description: options.description,
+      force: options.force,
     })
   })
 
 program
+  .command('update [path]')
+  .description(
+    'Pull updates from the base template into a project or child template'
+  )
+  .action(async (path: string | undefined) => {
+    await updateCommand(path ?? '.')
+  })
+
+program
   .command('list')
-  .description('List installed skills')
+  .description('List registered templates and installed skills')
   .action(async () => {
     await listCommand()
   })
@@ -50,14 +119,16 @@ program
 program
   .command('remove <name>')
   .alias('rm')
-  .description('Remove an installed skill')
+  .description('Unregister a template or remove an installed skill')
   .action(async (name: string) => {
     await removeCommand(name)
   })
 
 program
   .command('build [path]')
-  .description('Build default files from .taito/ templates (for skill authors)')
+  .description(
+    'Build default files from .taito/ templates (skills or project templates)'
+  )
   .option('-o, --output <path>', 'Custom output directory')
   .action(async (path: string | undefined, options) => {
     await buildCommand(path, {

@@ -9,16 +9,41 @@ import {
   findWorkspaceRoot,
   getSkillsDir,
 } from '../lib/paths.js'
+import { listRegisteredTemplates } from '../lib/registry.js'
 
 /**
- * List installed skills
+ * List registered templates and installed skills
  */
 export async function listCommand(): Promise<void> {
+  const templates = listRegisteredTemplates()
+
+  if (templates.length > 0) {
+    p.log.info(
+      `\nTemplates (${templates.length}):`
+    )
+    p.log.message('')
+
+    for (const tpl of templates) {
+      const extendsLabel = tpl.extends ? ` (extends ${tpl.extends})` : ''
+      p.log.message(`  ${tpl.name}${extendsLabel}`)
+      p.log.message(`    Path: ${tpl.path}`)
+      p.log.message(`    Source: ${tpl.source}`)
+      if (tpl.branch) {
+        p.log.message(`    Branch: ${tpl.branch}`)
+      }
+      p.log.message('')
+    }
+  } else {
+    p.log.info('\nTemplates: none registered')
+    p.log.message('  Register one with: taito add <path-to-template>')
+    p.log.message('')
+  }
+
   const workspaceRoot = findWorkspaceRoot()
   const detectedAgents = detectAllAgents(workspaceRoot)
 
   if (detectedAgents.length === 0) {
-    p.log.info('No agents detected in workspace.')
+    p.log.info('Skills: no agents detected in workspace.')
     return
   }
 
@@ -41,7 +66,7 @@ export async function listCommand(): Promise<void> {
     totalSkills += skills.length
 
     p.log.info(
-      `\n${config.name} (${skills.length} skill${skills.length > 1 ? 's' : ''}):`
+      `${config.name} (${skills.length} skill${skills.length > 1 ? 's' : ''}):`
     )
     p.log.message('')
 
@@ -56,9 +81,10 @@ export async function listCommand(): Promise<void> {
     }
 
     p.log.message(`  Directory: ${skillsDir}`)
+    p.log.message('')
   }
 
   if (totalSkills === 0) {
-    p.log.info('No skills installed yet.')
+    p.log.info('Skills: none installed yet.')
   }
 }

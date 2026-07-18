@@ -3,14 +3,19 @@ import { resolve } from 'node:path'
 
 import * as p from '@clack/prompts'
 
-import { getDefaultValues, parseSkillConfig } from '../lib/config.js'
+import {
+  getDefaultValues,
+  parseSkillConfig,
+  parseTemplateConfig,
+} from '../lib/config.js'
+import { isTemplate } from '../lib/classify.js'
+import { getTemplateConfigPath } from '../lib/classify.js'
 import { getSkillConfigPath, isCustomizableSkill } from '../lib/paths.js'
 import { renderWithDefaults } from '../lib/render.js'
 import type { BuildOptions } from '../types.js'
 
 /**
- * Build default files from .taito/ templates
- * For skill authors to regenerate SKILL.md etc. with default values
+ * Build default files from .taito/ templates (skills or project templates)
  */
 export async function buildCommand(
   path: string = '.',
@@ -19,30 +24,57 @@ export async function buildCommand(
   const spinner = p.spinner()
 
   try {
-    const skillDir = resolve(path)
+    const packageDir = resolve(path)
 
-    // Check if directory exists
-    if (!existsSync(skillDir)) {
-      p.log.error(`Directory not found: ${skillDir}`)
+    if (!existsSync(packageDir)) {
+      p.log.error(`Directory not found: ${packageDir}`)
       process.exit(1)
     }
 
-    // Check if it's a customizable skill
-    if (!isCustomizableSkill(skillDir)) {
-      p.log.error('No .taito/ folder found. This is not a customizable skill.')
+    if (isTemplate(packageDir)) {
+      const configPath = getTemplateConfigPath(packageDir)
+      const config = parseTemplateConfig(configPath)
+      const defaults = getDefaultValues(config)
+
+      p.log.info(`Building template ${config.meta.name} with default values...`)
+      for (const [key, value] of Object.entries(defaults)) {
+        const displayValue = Array.isArray(value)
+          ? value.join(', ')
+          : String(value)
+        p.log.message(`  ${key}: ${displayValue}`)
+      }
+
+      spinner.start('Rendering templates...')
+      const files = await renderWithDefaults(
+        packageDir,
+        defaults,
+        options.output
+      )
+      spinner.stop('Templates rendered!')
+
+      const outputLocation = options.output
+        ? resolve(options.output)
+        : packageDir
+      p.log.success(`Generated files in ${outputLocation}:`)
+      for (const file of files) {
+        p.log.message(`  ${file}`)
+      }
+      return
+    }
+
+    if (!isCustomizableSkill(packageDir)) {
+      p.log.error(
+        'Not a customizable skill or template. Expected .taito/skill.config.toml or .taito/template.config.toml'
+      )
       process.exit(1)
     }
 
-    // Parse config
-    const configPath = getSkillConfigPath(skillDir)
+    const configPath = getSkillConfigPath(packageDir)
     const config = parseSkillConfig(configPath)
-
-    // Get default values
     const defaults = getDefaultValues(config)
 
     p.log.info(`Building ${config.meta.name} with default values...`)
 
-    // Show defaults being used
     for (const [key, value] of Object.entries(defaults)) {
       const displayValue = Array.isArray(value)
         ? value.join(', ')
@@ -50,13 +82,11 @@ export async function buildCommand(
       p.log.message(`  ${key}: ${displayValue}`)
     }
 
-    // Render templates with defaults
     spinner.start('Rendering templates...')
-    const files = await renderWithDefaults(skillDir, defaults, options.output)
+    const files = await renderWithDefaults(packageDir, defaults, options.output)
     spinner.stop('Templates rendered!')
 
-    // Show results
-    const outputLocation = options.output ? resolve(options.output) : skillDir
+    const outputLocation = options.output ? resolve(options.output) : packageDir
     p.log.success(`Generated files in ${outputLocation}:`)
     for (const file of files) {
       p.log.message(`  ${file}`)

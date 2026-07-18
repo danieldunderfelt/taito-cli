@@ -1,257 +1,219 @@
 # Taito CLI
 
-A CLI for installing customizable [Agent Skills](https://agentskills.io) from GitHub.
+A CLI for **initializing projects from customizable templates**, and for installing customizable [Agent Skills](https://agentskills.io).
 
-Agent Skills are instructions that AI coding assistants can follow to perform specific tasks. The `taito` CLI extends the standard Agent Skills format with support for **customizable skills** that adapt to your project's specific configuration during installation.
+Templates are ordinary git repos with a `.taito/template.config.toml`. Skills use the same customization engine (`.taito/` + EJS + TOML). "Taito" is Finnish for "skill."
 
 ## Why Taito?
 
-There are a few CLI tools for managing agent skills, such as [Vercel's skills CLI](https://skills.sh) and [Agent Skills Manager](https://www.agentskills.in/). However, none of them support customizable skills. If you make a cool skill for your project, it probably has a few project-specific details that won't work for other projects which makes sharing it with other developers difficult. Each developer who adds your skill would need to manually edit the skill to make it work for their project.
+Most boilerplate tools copy files once and leave you on your own. Taito templates are:
 
-Taito makes it easy to customize skills to your project's specific details, while maintaining installability with other CLIs that don't support customization. Simply write your skill, add the Taito skill from this repository (`taito add danieldunderfelt/taito-cli`), and ask your AI agent to make it customizable in the Taito format. Then anyone who adds your skill will be able to customize it to their project's specific details.
+- **Customizable** — prompts, EJS templates, and optional components (include/exclude files & skills)
+- **Composable** — duplicate a template into a new repo, or extend one as a git worktree/branch
+- **Updatable** — `taito update` pulls template changes into projects (three-way merge) or child templates (git merge)
+- **Skill-aware** — customizable skills inside a template run through the full skill customizer on project init
 
-As for features, I can add pretty much anything the other CLI's support. If you have a feature request, please open an issue. Yes, that means they can also add customizable skills as well.
-
-I really hope that they do.
-
-Oh btw, "taito" is the Finnish word for "skill". In case you were wondering.
+Skill install still works the same way as before: `taito add owner/repo` auto-detects templates vs skills.
 
 ## Installation
 
 ```bash
-# Using npm
 npm install -g taito-cli
 
-# Or run directly with npx
-npx taito-cli add owner/repo
+# Or run directly
+npx taito-cli --help
 ```
 
-The package includes standalone executables for macOS (Apple Silicon), Linux (x64/arm64), and Windows (x64). No runtime dependencies required.
+Standalone binaries for macOS (Apple Silicon), Linux (x64/arm64), and Windows (x64) ship in the npm package. No runtime required.
 
-### Windows Users
-
-The npm package uses a shell script launcher that works natively on macOS and Linux. On Windows, you have a few options:
-
-1. **Git Bash / WSL** (Recommended): If you have Git for Windows installed, the shell launcher works automatically in Git Bash or through WSL.
-
-2. **Use the .cmd launcher**: After installing, run the CLI using the included batch script:
-
-   ```cmd
-   node_modules\.bin\taito.cmd add owner/repo
-   ```
-
-3. **Run the binary directly**: The standalone Windows executable can be run without any launcher:
-
-   ```cmd
-   %APPDATA%\npm\node_modules\taito-cli\dist\taito-windows-x64.exe add owner/repo
-   ```
-
-4. **Download the binary**: Download `taito-windows-x64.exe` from the [releases page](https://github.com/danieldunderfelt/taito-cli/releases) and add it to your PATH.
-
-## Quick Start
+## Quick Start — Projects
 
 ```bash
-# Install a skill from GitHub (auto-detects your agent)
-taito add aikoa-platform/agent-skills
+# 1. Make your boilerplate a template (git repo + config)
+#    See skills/template-development or:
+mkdir -p my-template/.taito
+# add .taito/template.config.toml, commit, then:
 
-# Install a specific skill from a repo containing multiple skills
-taito add aikoa-platform/agent-skills/react-localization
+taito add ~/Work/project-template
 
-taito add aikoa-platform/agent-skills --agent cursor
+# 2. Create a project (path defaults to current directory)
+taito new project -t project-template
+taito new project ./acme-app -t project-template
 
-# Install with preset configuration (non-interactive)
-taito add aikoa-platform/agent-skills --config ./my-config.toml
-
-# List installed skills
-taito list
-
-# Remove a skill
-taito remove react-localization
+# 3. Later, pull template updates
+cd acme-app
+taito update
 ```
 
-## How It Works
+### Example: `~/Work/project-template`
 
-### Multi-Agent Support
+If you keep a scaffold at `~/Work/project-template`:
 
-`taito` automatically detects which AI coding assistant you're using and installs skills to the correct location. Supported agents:
+1. Ensure it is a **git repository**
+2. Add `.taito/template.config.toml` (minimum: `[meta]` with `name`)
+3. Optionally add `.taito/*.ejs` customization points for files like `AGENT.md`
+4. Register: `taito add ~/Work/project-template`
+5. Init: `taito new project ./my-app -t project-template`
 
-- **Cursor** (`.cursor/skills/`)
-- **Windsurf** (`.windsurf/skills/`)
-- **Claude Code** (`.claude/skills/`)
-- **Clawdbot** (`<workspace>/skills/`) - uses [ClawdHub workspace discovery](https://docs.clawd.bot/tools/clawdhub)
-- **Codex** (`.codex/skills/`)
-- **OpenCode** (`.opencode/skill/`)
-- **GitHub Copilot** (`.github/skills/`)
-- **VS Code** (`.github/skills/`)
-- **Gemini CLI** (`.gemini/skills/`)
-- **Goose** (`.agents/skills/`)
-- **AMP** (`.agents/skills/`)
-- **Trae** (`.trae/skills/`)
-- **Antigravity** (`.agent/skills/`)
+## Quick Start — Skills
 
-If multiple agents are detected, you'll be prompted to choose which one to install for. You can also explicitly specify an agent with the `--agent` flag.
+```bash
+# Install a skill (same command — auto-detected via SKILL.md)
+taito add owner/repo
+taito add owner/repo/path/to/skill --agent cursor
 
-### Standard Skills
+# Scaffold a new customizable skill package
+taito new skill ./my-skill
 
-For standard (non-customizable) skills, `taito` works just like other skill installers: it downloads the skill from GitHub and copies it to the skills directory for your agent.
+# List templates + skills
+taito list
+```
 
-### Customizable Skills
+## How `taito add` decides
 
-When a skill contains a `.taito/` folder, it becomes customizable. During installation, `taito` will:
+1. If the source has `.taito/template.config.toml` → **register a template**
+2. Else if it contains `SKILL.md` trees → **install skill(s)** (existing behavior)
+3. Else → error
 
-1. Detect the `.taito/skill.config.toml` configuration file
-2. Prompt you for values (or use a preset config file)
-3. Render templates with your values
-4. Output the customized skill to the skills directory for your agent
-
-For example, a localization skill might ask:
-
-- What is your source language?
-- What languages do you support?
-- What format do you use for your translation files?
-- Where are your translation files located?
-
-The resulting `SKILL.md` will contain instructions tailored to your project.
+GitHub sources work for both. Templates are **git cloned** into `~/.taito/templates/<name>/`. Skills still use the lightweight tarball fetch.
 
 ## CLI Commands
 
 ### `taito add <source>`
 
-Install a skill from GitHub or a local path.
+Register a template **or** install a skill.
 
 ```bash
-# From GitHub (auto-detects agent)
+# Templates
+taito add ~/Work/project-template
+taito add owner/template-repo
+taito add ~/Work/my-variant --duplicate project-template
+taito add ~/Work/my-child --extend project-template
+taito add ~/Work/renamed --duplicate project-template --name my-name
+
+# Skills
 taito add owner/repo
-taito add owner/repo@v1.0.0  # specific tag/branch
-
-# Install a specific skill from a multi-skill repo
-taito add owner/repo/path/to/skill
-taito add owner/repo/path/to/skill@v1.0.0
-
-# Install for specific agent (case-insensitive)
-taito add owner/repo --agent cursor
-taito add owner/repo --agent ClaudeCode
-
-# From local path
-taito add ./path/to/skill
-
-# Options
-taito add owner/repo --config ./answers.toml  # preset config
-taito add owner/repo --dry-run                # preview without writing
-taito add owner/repo --output ./custom/path   # custom output directory
-taito add owner/repo --ref main               # specific git ref
-taito add owner/repo --global                 # install globally (agent-dependent)
+taito add owner/repo/path/to/skill --agent cursor
+taito add owner/repo --config ./answers.toml
+taito add ./path/to/skill --dry-run
 ```
 
-### `taito list`
+Template options: `--duplicate`, `--extend`, `--name`, `--force`, `--ref`  
+Skill options: `--config`, `--agent`, `--global`, `--output`, `--dry-run`, `--ref`
 
-List all installed skills across all detected agents.
+### `taito new project [path] -t/--template <name>`
+
+Initialize a project from a registered template.
+
+- `path` defaults to `.`
+- Creates the directory (`mkdir -p`) if missing
+- Prompts for template variables and components
+- Runs the skill customizer for each included customizable skill
+- Writes `.taito/project.meta.toml` and initializes git if needed
 
 ```bash
-taito list
+taito new project -t project-template
+taito new project ./acme -t project-template --config ./answers.toml
+taito new project ./acme -t project-template --force --agent cursor
 ```
 
-Output:
+### `taito new skill [path]`
+
+Scaffold a customizable skill (`SKILL.md` + `.taito/skill.config.toml` + `.taito/SKILL.md.ejs`).
+
+### `taito update [path]`
+
+Pull updates from the base template into a **project** or **child template** (defaults to `.`).
+
+### `taito list` / `taito remove` / `taito build`
+
+- `list` — registered templates and installed skills
+- `remove` / `rm` — unregister a template or remove a skill
+- `build` — render `.taito/*.ejs` with defaults (works for skills and templates)
+
+## Template format
 
 ```
-Cursor (1 skill):
-  react-localization (customized)
-    Source: aikoa-platform/agent-skills
-    Installed: 1/21/2026
-
-  Directory: /path/to/.cursor/skills
-
-Windsurf (1 skill):
-  code-review
-    Source: vercel-labs/agent-skills
-    Installed: 1/20/2026
-
-  Directory: /path/to/.windsurf/skills
+my-template/                 # git repo
+├── .taito/
+│   ├── template.config.toml # required
+│   └── AGENT.md.ejs         # optional
+├── AGENT.md
+├── docs/
+└── .agents/skills/...
 ```
 
-### `taito remove <name>`
+Minimal config:
 
-Remove an installed skill. If the skill is installed for multiple agents, you'll be prompted to choose which one to remove from.
+```toml
+[meta]
+name = "project-template"
+version = "0.1.0"
+description = "My project scaffold"
+
+[variables.PROJECT_NAME]
+type = "string"
+prompt = "Project name?"
+default = "my-project"
+
+[components.extra_docs]
+prompt = "Include extra docs?"
+default = true
+paths = ["docs/extra/**"]
+```
+
+Variable types match skills (`string`, `choice`, `boolean`, `array`) with `${VAR}` interpolation.
+
+For a full authoring guide, install the bundled skill:
 
 ```bash
-taito remove react-localization
+taito add danieldunderfelt/taito-cli/skills/template-development
 ```
 
-### `taito build [path]`
+## Customizable Skills
 
-For skill authors: generate skill files from `.taito/` templates using default values. This will allow the skill to be used with other CLIs that don't support customization.
+When a skill contains `.taito/skill.config.toml`, install prompts for variables and renders EJS templates into your agent skills directory. See the [Creating Customizable Skills](#creating-customizable-skills) section below, or:
 
 ```bash
-# Build in current directory
-taito build
-
-# Build specific skill
-taito build ./my-skill/
+taito add danieldunderfelt/taito-cli/skills/customizable-skills
 ```
+
+### Multi-Agent Support
+
+Skills install to the correct location for your agent:
+
+- **Cursor** (`.cursor/skills/`)
+- **Windsurf** (`.windsurf/skills/`)
+- **Claude Code** (`.claude/skills/`)
+- **Clawdbot** (`<workspace>/skills/`)
+- **Codex**, **OpenCode**, **GitHub Copilot**, **VS Code**, **Gemini CLI**, **Goose**, **AMP**, **Trae**, **Antigravity**
+
+Use `--agent` to force a target, or `--global` where supported.
 
 ## Creating Customizable Skills
 
-To make your skill customizable, add a `.taito/` folder that mirrors your skill structure with EJS templates.
-
-### Directory Structure
+Add a `.taito/` folder that mirrors your skill structure with EJS templates.
 
 ```
 my-skill/
-├── SKILL.md                  # Default output (for standard CLIs)
-├── scripts/
-│   └── helper.sh             # Default script
-└── .taito/                  # Customization folder
-    ├── skill.config.toml     # Variable definitions
-    ├── SKILL.md.ejs          # Template for SKILL.md
-    └── scripts/
-        └── helper.sh.ejs     # Template for script (optional)
+├── SKILL.md
+└── .taito/
+    ├── skill.config.toml
+    └── SKILL.md.ejs
 ```
-
-### Configuration File
-
-Create `.taito/skill.config.toml` to define customizable variables:
 
 ```toml
 [meta]
 name = "my-skill"
 version = "1.0.0"
 
-# String variable
 [variables.PROJECT_NAME]
 type = "string"
 prompt = "What is your project name?"
 default = "my-app"
-
-# Choice variable
-[variables.FRAMEWORK]
-type = "choice"
-prompt = "Which framework are you using?"
-default = "react"
-
-  [[variables.FRAMEWORK.options]]
-  value = "react"
-  label = "React"
-
-  [[variables.FRAMEWORK.options]]
-  value = "vue"
-  label = "Vue"
-
-  [[variables.FRAMEWORK.options]]
-  value = "svelte"
-  label = "Svelte"
-
-# Boolean variable
-[variables.USE_TYPESCRIPT]
-type = "boolean"
-prompt = "Are you using TypeScript?"
-default = true
-
-# Array variable
-[variables.SUPPORTED_LANGUAGES]
-type = "array"
-prompt = "Which languages do you support? (comma-separated)"
-default = ["en", "es"]
 ```
+
+After editing templates, run `taito build` to regenerate root defaults for other CLIs.
 
 ### Variable Types
 
@@ -262,202 +224,34 @@ default = ["en", "es"]
 | `boolean` | Yes/No confirm       | `boolean`  |
 | `array`   | Comma-separated text | `string[]` |
 
-### Variable Interpolation
-
-Variables can reference each other using `${VAR_NAME}` syntax. This allows later questions to use answers from earlier questions in their prompts or default values:
+### Preset Configuration
 
 ```toml
-[meta]
-name = "my-skill"
-
-[variables.PACKAGE_MANAGER]
-type = "choice"
-prompt = "Which package manager do you use?"
-default = "npm"
-
-  [[variables.PACKAGE_MANAGER.options]]
-  value = "npm"
-  label = "npm"
-
-  [[variables.PACKAGE_MANAGER.options]]
-  value = "yarn"
-  label = "yarn"
-
-  [[variables.PACKAGE_MANAGER.options]]
-  value = "pnpm"
-  label = "pnpm"
-
-[variables.LINT_COMMAND]
-type = "string"
-prompt = "What command runs your linter?"
-default = "${PACKAGE_MANAGER} run lint"
-
-[variables.TEST_COMMAND]
-type = "string"
-prompt = "What command runs your tests?"
-default = "${PACKAGE_MANAGER} run test"
-```
-
-When the user selects `pnpm` as their package manager, the default for `LINT_COMMAND` will be shown as `pnpm run lint`.
-
-Interpolation works in:
-
-- `prompt` - the question shown to the user
-- `default` - the default value for string and choice variables
-- Choice option `label` values
-
-### Template Format
-
-Templates use [EJS](https://ejs.co/) syntax. Create `.taito/SKILL.md.ejs`:
-
-```markdown
----
-name: my-skill
-description: A skill for <%= PROJECT_NAME %>
----
-
-# My Skill
-
-This skill is configured for **<%= FRAMEWORK %>**.
-
-<% if (USE_TYPESCRIPT) { %>
-
-## TypeScript Configuration
-
-Make sure your `tsconfig.json` includes...
-<% } %>
-
-## Supported Languages
-
-<% SUPPORTED_LANGUAGES.forEach(lang => { %>
-
-- <%= lang %>
-  <% }) %>
-```
-
-### Keeping Defaults in Sync
-
-After editing templates, run `taito build` to regenerate the default `SKILL.md`:
-
-```bash
-taito build ./my-skill/
-```
-
-This ensures your skill remains compatible with other CLIs that don't support customization.
-
-## Compatibility
-
-### With Standard Skills
-
-`taito` fully supports standard Agent Skills that don't have a `.taito/` folder. It simply copies `SKILL.md`, `scripts/`, `references/`, and `assets/` to the output directory.
-
-### With Other CLIs
-
-Customizable skills are designed to be backwards compatible:
-
-- **Other CLIs** (like [Vercel's skills CLI](https://skills.sh)) will see only the root-level files (`SKILL.md`, `scripts/`, etc.) and install them normally. The `.taito/` folder is (hopefully) ignored as a hidden directory.
-
-- **taito** checks for `.taito/skill.config.toml`. If present, it uses the templates for customization. If not, it behaves like a standard skill installer.
-
-This means you can publish a single skill that works with any CLI—users with `taito` get customization, while users with other CLIs get sensible defaults.
-
-## Preset Configuration
-
-For CI/CD or team-wide configurations, create a TOML file with preset values:
-
-```toml
-# team-config.toml
+# answers.toml
 PROJECT_NAME = "acme-app"
 FRAMEWORK = "react"
-USE_TYPESCRIPT = true
-SUPPORTED_LANGUAGES = ["en", "es", "fr", "de"]
 ```
-
-Then install non-interactively:
 
 ```bash
-taito add owner/repo --config ./team-config.toml
+taito add owner/repo --config ./answers.toml
+taito new project -t my-template --config ./answers.toml
 ```
 
-## Multi-Agent Detection
+## Global state
 
-`taito` automatically detects which AI coding assistant is being used by checking for marker directories:
+| Path | Purpose |
+|------|---------|
+| `~/.taito/registry.toml` | Registered templates |
+| `~/.taito/templates/<name>/` | Clones of GitHub-sourced templates |
 
-```bash
-# Single agent detected - installs automatically
-$ taito add owner/repo
-✓ Detected agent: Cursor
-✓ Installing to .cursor/skills/...
-
-# Multiple agents detected - prompts for choice
-$ taito add owner/repo
-✓ Multiple agents detected: Cursor, Windsurf
-? Which agent do you want to install the skill for?
-  > Cursor
-    Windsurf
-
-# Force specific agent
-$ taito add owner/repo --agent windsurf
-✓ Installing to .windsurf/skills/...
-```
-
-The detection order prioritizes the most commonly used agents first. If you're using multiple agents in the same project and want skills installed for all of them, run the command multiple times with different `--agent` flags.
+Override home with `TAITO_HOME`.
 
 ## Private Repositories
 
-For private GitHub repositories, set the `GITHUB_TOKEN` environment variable:
-
 ```bash
 export GITHUB_TOKEN=ghp_xxxxxxxxxxxx
+taito add private-org/private-template
 taito add private-org/private-skill
-```
-
-## Output Location
-
-By default, skills are installed to the appropriate directory for your detected agent:
-
-- Cursor: `.cursor/skills/<skill-name>/`
-- Windsurf: `.windsurf/skills/<skill-name>/`
-- Claude Code: `.claude/skills/<skill-name>/`
-- etc.
-
-The workspace root is detected by looking for:
-
-1. Agent-specific directories (`.cursor`, `.windsurf`, etc.)
-2. `.git/` directory
-3. `package.json`
-4. Current working directory (fallback)
-
-### Clawdbot Workspace Discovery
-
-Clawdbot uses a unique workspace model. Unlike other agents that store skills in a hidden directory (e.g., `.cursor/skills/`), Clawdbot stores skills in `<workspace>/skills/`. When installing for Clawdbot, `taito` follows the official ClawdHub workspace discovery chain:
-
-1. `CLAWDHUB_WORKDIR` environment variable (if set)
-2. Current directory (if it contains `.clawdhub/` marker)
-3. Clawdbot's configured default workspace from `~/.clawdbot/clawdbot.json`:
-   - `agents.defaults.workspace` (or legacy `agent.workspace`)
-   - Agent marked `default: true`
-   - Agent with id `main`
-4. Current directory (fallback)
-
-This ensures skills are installed to the same location that Clawdbot's `clawdhub` CLI would use.
-
-### Global Installation
-
-Some agents support global installation with the `--global` flag:
-
-```bash
-taito add owner/repo --global
-```
-
-This installs to the agent's global directory (typically in your home directory) instead of the project-local directory. Not all agents support global installation.
-
-### Custom Output
-
-Use `--output` to specify a custom location (bypasses agent detection):
-
-```bash
-taito add owner/repo --output ~/.my-skills/
 ```
 
 ## License

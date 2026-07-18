@@ -1,5 +1,6 @@
 import {
   copyFileSync,
+  existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -10,7 +11,22 @@ import { dirname, join, relative, resolve } from 'node:path'
 
 import ejs from 'ejs'
 
-import type { VariableValues } from '../types.js'
+import { matchAnyGlob } from './glob.js'
+import type { RenderMode, VariableValues } from '../types.js'
+
+export interface RenderOptions {
+  mode: RenderMode
+  dryRun?: boolean
+  /** Relative path globs to exclude from output */
+  excludePaths?: string[]
+  /** Relative skill directory prefixes to exclude (and their trees) */
+  excludeSkills?: string[]
+  /**
+   * When true, skip copying skill packages that look customizable
+   * (contain .taito/skill.config.toml). They are installed separately.
+   */
+  skipCustomizableSkills?: boolean
+}
 
 /**
  * Render all .ejs templates in .taito/ directory
@@ -22,20 +38,52 @@ export async function renderSkill(
   values: VariableValues,
   dryRun: boolean = false
 ): Promise<string[]> {
-  const taitoDir = join(skillDir, '.taito')
-  const renderedFiles: string[] = []
+  return renderTaitoTree(skillDir, outputDir, values, {
+    mode: 'skill',
+    dryRun,
+  })
+}
 
-  // Collect all template files from .taito/
+/**
+ * Shared renderer for skills and templates
+ */
+export async function renderTaitoTree(
+  sourceDir: string,
+  outputDir: string,
+  values: VariableValues,
+  options: RenderOptions
+): Promise<string[]> {
+  const taitoDir = join(sourceDir, '.taito')
+  const renderedFiles: string[] = []
+  const dryRun = options.dryRun ?? false
+  const excludePaths = options.excludePaths ?? []
+  const excludeSkills = options.excludeSkills ?? []
+
   const templateFiles = collectFiles(taitoDir, '.ejs')
   const templateTargets = new Set<string>()
 
-  // Process each template
   for (const templatePath of templateFiles) {
     const relativePath = relative(taitoDir, templatePath)
-    // Remove .ejs extension for output path
-    const outputPath = join(outputDir, relativePath.replace(/\.ejs$/, ''))
-    templateTargets.add(relativePath.replace(/\.ejs$/, ''))
+    const outputRelative = relativePath.replace(/\.ejs$/, '')
 
+    // Skip config files and skill configs under .taito
+    if (
+      outputRelative === 'skill.config.toml' ||
+      outputRelative === 'template.config.toml' ||
+      outputRelative === 'project.meta.toml'
+    ) {
+      continue
+    }
+
+    if (shouldExclude(outputRelative, excludePaths, excludeSkills)) {
+      continue
+    }
+
+    // Don't render files that belong to customizable skill packages via template EJS
+    // (skill EJS lives under skillDir/.taito/ — those are handled by skill install)
+    templateTargets.add(outputRelative)
+
+    const outputPath = join(outputDir, outputRelative)
     const rendered = await renderTemplate(templatePath, values)
 
     if (dryRun) {
@@ -46,35 +94,57 @@ export async function renderSkill(
       )
       console.log('---\n')
     } else {
-      // Ensure directory exists
       mkdirSync(dirname(outputPath), { recursive: true })
       writeFileSync(outputPath, rendered)
     }
 
-    renderedFiles.push(relative(outputDir, outputPath))
+    renderedFiles.push(outputRelative)
   }
 
-  // Copy non-templated files from root skill directory
-  const rootFiles = collectAllFiles(skillDir)
+  const rootFiles = collectAllFiles(sourceDir, options.mode)
   for (const filePath of rootFiles) {
-    const relativePath = relative(skillDir, filePath)
+    const relativePath = relative(sourceDir, filePath)
 
-    // Skip .taito/ directory
-    if (relativePath.startsWith('.taito')) {
+    if (
+      relativePath === '.taito' ||
+      relativePath.startsWith('.taito/') ||
+      relativePath === '.git' ||
+      relativePath.startsWith('.git/')
+    ) {
       continue
     }
 
-    // Skip if there's a template for this file
     if (templateTargets.has(relativePath)) {
       continue
     }
 
-    // Skip hidden files and common non-skill files
+    if (shouldExclude(relativePath, excludePaths, excludeSkills)) {
+      continue
+    }
+
+    if (options.mode === 'skill') {
+      if (
+        relativePath.startsWith('.') ||
+        relativePath === 'package.json' ||
+        relativePath === 'package-lock.json' ||
+        relativePath === 'node_modules' ||
+        relativePath.startsWith('node_modules/')
+      ) {
+        continue
+      }
+    } else {
+      // Template mode: skip node_modules
+      if (
+        relativePath === 'node_modules' ||
+        relativePath.startsWith('node_modules/')
+      ) {
+        continue
+      }
+    }
+
     if (
-      relativePath.startsWith('.') ||
-      relativePath === 'package.json' ||
-      relativePath === 'package-lock.json' ||
-      relativePath === 'node_modules'
+      options.skipCustomizableSkills &&
+      isInsideCustomizableSkill(sourceDir, relativePath)
     ) {
       continue
     }
@@ -94,6 +164,50 @@ export async function renderSkill(
   return renderedFiles
 }
 
+function shouldExclude(
+  relativePath: string,
+  excludePaths: string[],
+  excludeSkills: string[]
+): boolean {
+  if (excludePaths.length > 0 && matchAnyGlob(excludePaths, relativePath)) {
+    return true
+  }
+  for (const skill of excludeSkills) {
+    const normalized = skill.replace(/\\/g, '/').replace(/\/$/, '')
+    if (
+      relativePath === normalized ||
+      relativePath.startsWith(normalized + '/')
+    ) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Detect if a relative path sits inside a customizable skill package
+ */
+function isInsideCustomizableSkill(
+  sourceDir: string,
+  relativePath: string
+): boolean {
+  const parts = relativePath.replace(/\\/g, '/').split('/')
+  // Walk up path prefixes looking for SKILL.md + skill.config.toml
+  for (let i = parts.length; i >= 1; i--) {
+    const prefix = parts.slice(0, i).join('/')
+    const skillMd = join(sourceDir, prefix, 'SKILL.md')
+    const skillConfig = join(sourceDir, prefix, '.taito', 'skill.config.toml')
+    if (existsSync(skillMd) && existsSync(skillConfig)) {
+      return true
+    }
+    if (existsSync(skillMd) && !existsSync(skillConfig)) {
+      // Standard skill — copy with the tree; only customizable skills are deferred
+      return false
+    }
+  }
+  return false
+}
+
 /**
  * Render a single EJS template file
  */
@@ -105,7 +219,7 @@ async function renderTemplate(
 
   try {
     return ejs.render(template, values, {
-      filename: templatePath, // helps with error messages
+      filename: templatePath,
     })
   } catch (error) {
     const err = error as Error
@@ -133,16 +247,16 @@ function collectFiles(dir: string, extension: string): string[] {
       }
     }
   } catch {
-    // Directory doesn't exist, return empty
+    // Directory doesn't exist
   }
 
   return files
 }
 
 /**
- * Collect all files recursively (no extension filter)
+ * Collect all files recursively
  */
-function collectAllFiles(dir: string): string[] {
+function collectAllFiles(dir: string, mode: RenderMode): string[] {
   const files: string[] = []
 
   try {
@@ -153,16 +267,24 @@ function collectAllFiles(dir: string): string[] {
       const stat = statSync(fullPath)
 
       if (stat.isDirectory()) {
-        // Skip node_modules and hidden directories
-        if (entry !== 'node_modules' && !entry.startsWith('.')) {
-          files.push(...collectAllFiles(fullPath))
+        if (entry === 'node_modules' || entry === '.git') {
+          continue
         }
+        // Skill mode: skip hidden dirs except we already skip .taito at call site
+        if (mode === 'skill' && entry.startsWith('.')) {
+          continue
+        }
+        // Template mode: include hidden dirs (e.g. .agents, .cursor) except .git
+        if (mode === 'template' && entry === '.taito') {
+          continue
+        }
+        files.push(...collectAllFiles(fullPath, mode))
       } else {
         files.push(fullPath)
       }
     }
   } catch {
-    // Directory doesn't exist, return empty
+    // Directory doesn't exist
   }
 
   return files
@@ -172,23 +294,29 @@ function collectAllFiles(dir: string): string[] {
  * Render templates with default values (for build command)
  */
 export async function renderWithDefaults(
-  skillDir: string,
+  packageDir: string,
   values: VariableValues,
   outputDir?: string
 ): Promise<string[]> {
-  const taitoDir = join(skillDir, '.taito')
-  const targetDir = outputDir ? resolve(outputDir) : skillDir
+  const taitoDir = join(packageDir, '.taito')
+  const targetDir = outputDir ? resolve(outputDir) : packageDir
   const renderedFiles: string[] = []
 
-  // Collect all template files from .taito/
   const templateFiles = collectFiles(taitoDir, '.ejs')
 
-  // Process each template, writing to target directory
   for (const templatePath of templateFiles) {
     const relativePath = relative(taitoDir, templatePath)
-    // Remove .ejs extension and write to target directory
-    const outputPath = join(targetDir, relativePath.replace(/\.ejs$/, ''))
+    const outputRelative = relativePath.replace(/\.ejs$/, '')
 
+    if (
+      outputRelative === 'skill.config.toml' ||
+      outputRelative === 'template.config.toml' ||
+      outputRelative === 'project.meta.toml'
+    ) {
+      continue
+    }
+
+    const outputPath = join(targetDir, outputRelative)
     const rendered = await renderTemplate(templatePath, values)
 
     mkdirSync(dirname(outputPath), { recursive: true })

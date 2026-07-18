@@ -1,6 +1,11 @@
-import { createWriteStream, mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import {
+  createWriteStream,
+  existsSync,
+  mkdtempSync,
+  rmSync,
+} from 'node:fs'
+import { homedir, tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
@@ -9,18 +14,27 @@ import { extract } from 'tar'
 import type { SkillSource } from '../types.js'
 
 /**
- * Parse a skill source string (owner/repo, owner/repo/path/to/skill, or local path)
+ * Expand ~ and resolve a local filesystem path
+ */
+export function expandPath(path: string): string {
+  if (path === '~') {
+    return homedir()
+  }
+  if (path.startsWith('~/') || path.startsWith('~\\')) {
+    return join(homedir(), path.slice(2))
+  }
+  return resolve(path)
+}
+
+/**
+ * Parse a skill/template source string (owner/repo, owner/repo/path, or local path)
  */
 export function parseSkillSource(source: string, ref?: string): SkillSource {
   // Check if it's a local path
-  if (
-    source.startsWith('/') ||
-    source.startsWith('./') ||
-    source.startsWith('..')
-  ) {
+  if (isLocalPath(source)) {
     return {
       type: 'local',
-      path: source,
+      path: expandPath(source),
     }
   }
 
@@ -29,7 +43,7 @@ export function parseSkillSource(source: string, ref?: string): SkillSource {
   const match = source.match(/^([^/]+)\/([^/@]+)(\/[^@]+)?(?:@(.+))?$/)
   if (!match) {
     throw new Error(
-      `Invalid skill source: "${source}". Expected format: owner/repo, owner/repo/path/to/skill, or owner/repo@ref`
+      `Invalid source: "${source}". Expected format: owner/repo, owner/repo/path, local path, or owner/repo@ref`
     )
   }
 
@@ -43,6 +57,36 @@ export function parseSkillSource(source: string, ref?: string): SkillSource {
     ref: ref ?? match[4] ?? 'main',
     skillPath,
   }
+}
+
+function isLocalPath(source: string): boolean {
+  if (
+    source.startsWith('/') ||
+    source.startsWith('./') ||
+    source.startsWith('../') ||
+    source.startsWith('~') ||
+    source === '.' ||
+    source === '..'
+  ) {
+    return true
+  }
+
+  // Windows drive letter
+  if (/^[A-Za-z]:[\\/]/.test(source)) {
+    return true
+  }
+
+  // Existing local path that isn't a clear owner/repo shape
+  try {
+    const expanded = expandPath(source)
+    if (existsSync(expanded)) {
+      return true
+    }
+  } catch {
+    // ignore
+  }
+
+  return false
 }
 
 /**

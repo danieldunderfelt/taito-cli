@@ -1,6 +1,12 @@
 import * as p from '@clack/prompts'
 
-import type { SkillConfig, Variable, VariableValues } from '../types.js'
+import type {
+  ComponentValues,
+  SkillConfig,
+  TemplateConfig,
+  Variable,
+  VariableValues,
+} from '../types.js'
 
 // Module-level cache for current session
 let sessionVariableCache: VariableValues = {}
@@ -83,11 +89,12 @@ function interpolateVariable(
 }
 
 /**
- * Prompt user for all variables in a skill config
+ * Prompt user for all variables in a skill or template config
  */
 export async function promptForVariables(
-  config: SkillConfig,
-  presetValues?: VariableValues
+  config: SkillConfig | TemplateConfig | { meta: { name: string }; variables: Record<string, Variable> },
+  presetValues?: VariableValues,
+  options?: { intro?: string; outro?: string; skipOutro?: boolean }
 ): Promise<VariableValues> {
   const values: VariableValues = {}
 
@@ -96,7 +103,7 @@ export async function promptForVariables(
     return values
   }
 
-  p.intro(`Customizing ${config.meta.name}`)
+  p.intro(options?.intro ?? `Customizing ${config.meta.name}`)
 
   for (const [key, variable] of entries) {
     // Use preset value if available
@@ -120,7 +127,7 @@ export async function promptForVariables(
 
     // Check if user cancelled
     if (p.isCancel(value)) {
-      p.cancel('Installation cancelled.')
+      p.cancel('Cancelled.')
       process.exit(0)
     }
 
@@ -129,7 +136,45 @@ export async function promptForVariables(
     sessionVariableCache[key] = value
   }
 
-  p.outro('Configuration complete!')
+  if (!options?.skipOutro) {
+    p.outro(options?.outro ?? 'Configuration complete!')
+  }
+
+  return values
+}
+
+/**
+ * Prompt for template component include/exclude choices
+ */
+export async function promptForComponents(
+  config: TemplateConfig,
+  preset?: ComponentValues
+): Promise<ComponentValues> {
+  const values: ComponentValues = {}
+  const entries = Object.entries(config.components)
+
+  if (entries.length === 0) {
+    return values
+  }
+
+  for (const [key, component] of entries) {
+    if (preset && key in preset) {
+      values[key] = preset[key]
+      continue
+    }
+
+    const result = await p.confirm({
+      message: component.prompt,
+      initialValue: component.default ?? true,
+    })
+
+    if (p.isCancel(result)) {
+      p.cancel('Cancelled.')
+      process.exit(0)
+    }
+
+    values[key] = result
+  }
 
   return values
 }

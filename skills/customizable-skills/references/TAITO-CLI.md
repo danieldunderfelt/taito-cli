@@ -1,6 +1,8 @@
 # Taito CLI Reference
 
-The Taito CLI installs Agent Skills from GitHub with support for customization. This reference covers all commands and options.
+The Taito CLI initializes projects from customizable templates and installs Agent Skills with support for customization. This reference focuses on **skill** commands; for project templates see the `template-development` skill.
+
+`taito add` auto-detects: if the source has `.taito/template.config.toml` it registers a template; if it finds `SKILL.md` trees it installs skills.
 
 ## Installation
 

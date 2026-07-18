@@ -1,5 +1,5 @@
 /**
- * Variable types supported in skill configuration
+ * Variable types supported in skill/template configuration
  */
 export type VariableType = 'string' | 'choice' | 'boolean' | 'array'
 
@@ -65,13 +65,18 @@ export type Variable =
   | ArrayVariable
 
 /**
- * Skill configuration metadata
+ * Shared package metadata ([meta] section)
  */
-export interface SkillMeta {
+export interface PackageMeta {
   name: string
   version?: string
   description?: string
 }
+
+/**
+ * Skill configuration metadata
+ */
+export type SkillMeta = PackageMeta
 
 /**
  * Full skill configuration from .taito/skill.config.toml
@@ -82,9 +87,33 @@ export interface SkillConfig {
 }
 
 /**
+ * Optional include/exclude unit in a template
+ */
+export interface TemplateComponent {
+  prompt: string
+  default?: boolean
+  paths?: string[]
+  skills?: string[]
+}
+
+/**
+ * Full template configuration from .taito/template.config.toml
+ */
+export interface TemplateConfig {
+  meta: PackageMeta & { extends?: string }
+  variables: Record<string, Variable>
+  components: Record<string, TemplateComponent>
+}
+
+/**
  * User-provided values for variables
  */
 export type VariableValues = Record<string, string | boolean | string[]>
+
+/**
+ * Component selection results (name → included)
+ */
+export type ComponentValues = Record<string, boolean>
 
 /**
  * Options for the add command
@@ -96,6 +125,13 @@ export interface AddOptions {
   ref?: string // git ref (branch, tag, commit)
   agent?: string // specific agent to install for
   global?: boolean // install globally instead of locally
+  /** Register a duplicate of an existing template at the given path */
+  duplicate?: string
+  /** Register an extension (worktree) of an existing template at the given path */
+  extend?: string
+  /** Override registered template name */
+  name?: string
+  force?: boolean
 }
 
 /**
@@ -106,7 +142,27 @@ export interface BuildOptions {
 }
 
 /**
- * Parsed skill source (GitHub or local path)
+ * Options for new project
+ */
+export interface NewProjectOptions {
+  template: string
+  config?: string
+  force?: boolean
+  dryRun?: boolean
+  agent?: string
+}
+
+/**
+ * Options for new skill
+ */
+export interface NewSkillOptions {
+  name?: string
+  description?: string
+  force?: boolean
+}
+
+/**
+ * Parsed skill/template source (GitHub or local path)
  */
 export interface SkillSource {
   type: 'github' | 'local'
@@ -144,3 +200,47 @@ export interface DiscoveredSkill {
   dirName: string // directory name (for display during selection)
   isCustomizable: boolean
 }
+
+/**
+ * Registered template entry in ~/.taito/registry.toml
+ */
+export interface RegisteredTemplate {
+  name: string
+  path: string
+  source: string // "local" or "github:owner/repo"
+  ref?: string
+  extends?: string
+  branch?: string
+  addedAt: string
+}
+
+/**
+ * Global registry file shape
+ */
+export interface TaitoRegistry {
+  templates: Record<string, RegisteredTemplate>
+}
+
+/**
+ * Project metadata written to .taito/project.meta.toml
+ */
+export interface ProjectMeta {
+  project: {
+    template: string
+    templatePath: string
+    templateCommit: string
+    createdAt: string
+  }
+  variables: VariableValues
+  components: ComponentValues
+}
+
+/**
+ * Classification of an add source
+ */
+export type SourceKind = 'template' | 'skill' | 'unknown'
+
+/**
+ * Render mode for shared taito tree renderer
+ */
+export type RenderMode = 'skill' | 'template'

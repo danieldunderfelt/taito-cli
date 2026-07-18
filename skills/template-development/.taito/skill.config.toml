@@ -1,0 +1,30 @@
+[meta]
+name = "template-development"
+version = "1.0.0"
+description = "A skill for creating and maintaining Taito project templates"
+
+[variables.PREFERRED_AGENT]
+type = "choice"
+prompt = "Which AI agent do you primarily use?"
+default = "cursor"
+
+  [[variables.PREFERRED_AGENT.options]]
+  value = "cursor"
+  label = "Cursor"
+
+  [[variables.PREFERRED_AGENT.options]]
+  value = "claude-code"
+  label = "Claude Code"
+
+  [[variables.PREFERRED_AGENT.options]]
+  value = "codex"
+  label = "Codex"
+
+  [[variables.PREFERRED_AGENT.options]]
+  value = "opencode"
+  label = "OpenCode"
+
+[variables.FOCUS_AREAS]
+type = "array"
+prompt = "Which topics should be emphasized? (comma-separated: authoring, using, updating)"
+default = ["authoring", "using", "updating"]
