@@ -29,12 +29,15 @@ Algorithm (git-backed, preserves local edits):
 
 1. Resolve the registered template; optionally `git fetch` for GitHub-cached templates
 2. If `HEAD` equals `templateCommit`, report up to date
-3. Materialize the template at the **old** commit and the **new** commit using the same variables/components
-4. For each file:
+3. **Collect new customizations** — compare current `template.config.toml` to answers in `project.meta.toml`. Prompt for any new `[variables.*]` / `[components.*]` (existing answers are kept and not re-asked). Then persist the merged answers back into meta.
+4. Materialize the template at the **old** commit and the **new** commit using those merged variables/components
+5. For each file:
    - Template unchanged → skip
    - User never edited (ours == base) → take new template version
    - Both changed → `git merge-file` three-way merge; on conflict, prompt
-5. Write the new `templateCommit`
+6. Write the new `templateCommit` (and updated variables/components)
+
+This step is required so new EJS locals (e.g. a variable added after the project was created) are collected **before** render — otherwise update fails with a missing-variable render error.
 
 Customizable skills are not silently re-customized on update. If the template gained new skills, add them with `taito add` as needed.
 

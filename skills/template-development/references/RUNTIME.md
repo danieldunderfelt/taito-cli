@@ -24,6 +24,7 @@ Invariants for how Taito materializes templates. Do **not** open the `taito-cli`
 | `taito apply plan -t … -c answers.toml` | **No** | File + config defaults |
 | `taito apply cat` / `write` / `finalize` | **No** | Defaults, or `-c` if provided |
 | `taito apply skill` (customizable) | May prompt for **skill** vars | Separate from template vars; use skill `-c` if needed |
+| `taito update` (project) | **Only for new keys** | Stored `project.meta.toml` answers kept; prompts for variables/components added to the template since last create/apply/update |
 
 **Agent rule:** `--json` means non-interactive. Before any `apply … --json` / `cat` / `write` / `finalize`, collect real answers from the user and pass `-c answers.toml`. Bare `--json` will look like “customization did nothing” when defaults (e.g. `PROJECT_NAME = "my-project"`) are what you see.
 
@@ -54,8 +55,8 @@ For the full apply workflow (plan → merge → finalize), follow the **apply-te
 
 ## Updates (summary)
 
-- **Projects** (`.taito/project.meta.toml`): re-render old commit vs new commit with stored variables/components; three-way `git merge-file` into the project.
-- **Child templates** (`extends` / `--extend`): `git merge` of the base tip into the child worktree.
+- **Projects** (`.taito/project.meta.toml`): collect answers for any **new** template variables/components first; then re-render old commit vs new commit with the merged answers; three-way `git merge-file` into the project; write updated meta (commit + answers).
+- **Child templates** (`extends` / `--extend`): `git merge` of the base tip into the child worktree (no template variable prompts).
 
 Details: [UPDATE.md](UPDATE.md).
 

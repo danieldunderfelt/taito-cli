@@ -148,13 +148,21 @@ export async function promptForVariables(
  */
 export async function promptForComponents(
   config: TemplateConfig,
-  preset?: ComponentValues
+  preset?: ComponentValues,
+  options?: { intro?: string }
 ): Promise<ComponentValues> {
   const values: ComponentValues = {}
   const entries = Object.entries(config.components)
 
   if (entries.length === 0) {
     return values
+  }
+
+  const needsPrompt = entries.some(
+    ([key]) => !(preset && key in preset)
+  )
+  if (needsPrompt && options?.intro) {
+    p.intro(options.intro)
   }
 
   for (const [key, component] of entries) {

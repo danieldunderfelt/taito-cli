@@ -34,6 +34,7 @@ import {
   listRegisteredTemplates,
 } from '../lib/registry.js'
 import {
+  collectMissingTemplateInputs,
   materializeTemplateAtRef,
   writeProjectMeta,
 } from '../lib/template-materialize.js'
@@ -203,18 +204,34 @@ async function updateProject(projectDir: string): Promise<void> {
     `Updating ${oldCommit.slice(0, 7)} → ${newCommit.slice(0, 7)}...`
   )
 
+  // Prompt for any variables/components added to the template since last apply/create
+  const { values, components, prompted } = await collectMissingTemplateInputs(
+    template.path,
+    {
+      values: meta.variables,
+      components: meta.components,
+    }
+  )
+  if (prompted.variables.length > 0 || prompted.components.length > 0) {
+    const parts = [
+      ...prompted.variables.map((k) => `variable ${k}`),
+      ...prompted.components.map((k) => `component ${k}`),
+    ]
+    p.log.info(`Collected new customization: ${parts.join(', ')}`)
+  }
+
   spinner.start('Rendering template snapshots...')
   const oldSnap = await materializeTemplateAtRef(
     template.path,
     oldCommit,
-    meta.variables,
-    meta.components
+    values,
+    components
   )
   const newSnap = await materializeTemplateAtRef(
     template.path,
     newCommit,
-    meta.variables,
-    meta.components
+    values,
+    components
   )
   spinner.stop('Snapshots ready')
 
@@ -332,6 +349,8 @@ async function updateProject(projectDir: string): Promise<void> {
         templatePath: template.path,
         templateCommit: newCommit,
       },
+      variables: values,
+      components,
     })
 
     p.log.success(

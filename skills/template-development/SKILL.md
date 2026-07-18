@@ -129,7 +129,7 @@ Details: [references/EXTEND-AND-DUPLICATE.md](references/EXTEND-AND-DUPLICATE.md
 
 ## Updates
 
-- **Projects** store origin in `.taito/project.meta.toml`. `taito update` re-renders the template at the old and new commits and three-way-merges into the project (git `merge-file`), so local edits are preserved when possible.
+- **Projects** store origin in `.taito/project.meta.toml`. `taito update` first prompts for any **new** template variables/components (keeps existing answers), then re-renders old vs new commits and three-way-merges into the project (git `merge-file`).
 - **Child templates** run a git merge from the base tip.
 
 See [references/UPDATE.md](references/UPDATE.md) and [references/RUNTIME.md](references/RUNTIME.md).

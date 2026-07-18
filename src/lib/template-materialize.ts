@@ -88,6 +88,104 @@ export async function collectTemplateInputs(
 }
 
 /**
+ * Keys in the current template config that are not present in stored project answers.
+ */
+export function findMissingTemplateInputs(
+  config: TemplateConfig,
+  existing: {
+    values?: VariableValues
+    components?: ComponentValues
+  } = {}
+): { variables: string[]; components: string[] } {
+  const existingValues = existing.values ?? {}
+  const existingComponents = existing.components ?? {}
+  return {
+    variables: Object.keys(config.variables).filter(
+      (key) => !(key in existingValues)
+    ),
+    components: Object.keys(config.components).filter(
+      (key) => !(key in existingComponents)
+    ),
+  }
+}
+
+/**
+ * Resolve template inputs for `taito update`: keep stored answers, prompt only for
+ * new variables/components introduced since the project was created/last updated.
+ *
+ * When `nonInteractive` is true (or `configPath` is set), missing keys take defaults
+ * / answers-file values instead of prompting.
+ */
+export async function collectMissingTemplateInputs(
+  templateDir: string,
+  existing: {
+    values?: VariableValues
+    components?: ComponentValues
+  } = {},
+  options: MaterializeOptions = {}
+): Promise<{
+  config: TemplateConfig
+  values: VariableValues
+  components: ComponentValues
+  prompted: { variables: string[]; components: string[] }
+}> {
+  const config = parseTemplateConfig(getTemplateConfigPath(templateDir))
+
+  let presetValues: VariableValues = { ...(existing.values ?? {}) }
+  let presetComponents: ComponentValues = { ...(existing.components ?? {}) }
+
+  if (options.configPath) {
+    presetValues = {
+      ...presetValues,
+      ...parsePresetConfig(options.configPath),
+    }
+    presetComponents = {
+      ...presetComponents,
+      ...parsePresetComponents(options.configPath),
+    }
+  }
+
+  const missing = findMissingTemplateInputs(config, {
+    values: presetValues,
+    components: presetComponents,
+  })
+
+  const useDefaults =
+    options.nonInteractive || Boolean(options.configPath)
+
+  const intro = `Template '${config.meta.name}' has new customization options`
+
+  let values: VariableValues
+  if (missing.variables.length === 0 || useDefaults) {
+    values = getDefaultValues(config, presetValues)
+  } else {
+    values = await promptForVariables(config, presetValues, {
+      intro,
+      skipOutro: missing.components.length > 0,
+      outro: 'New options saved for this update.',
+    })
+  }
+
+  let components: ComponentValues
+  if (missing.components.length === 0 || useDefaults) {
+    components = getDefaultComponentValues(config, presetComponents)
+  } else {
+    components = await promptForComponents(config, presetComponents, {
+      intro: missing.variables.length === 0 ? intro : undefined,
+    })
+  }
+
+  return {
+    config,
+    values,
+    components,
+    prompted: useDefaults
+      ? { variables: [], components: [] }
+      : missing,
+  }
+}
+
+/**
  * Materialize a template into an output directory (render + copy, skip customizable skills)
  */
 export async function materializeTemplate(
