@@ -336,14 +336,18 @@ export async function installSingleSkill(
     : getSkillOutputDir(skillName, agent, options.global, workspaceRoot)
 
   if (existsSync(outputDir) && !options.dryRun) {
-    const overwrite = await p.confirm({
-      message: `Skill '${skillName}' already exists. Overwrite?`,
-      initialValue: false,
-    })
+    if (options.force) {
+      // Agent/non-interactive overwrite
+    } else {
+      const overwrite = await p.confirm({
+        message: `Skill '${skillName}' already exists. Overwrite?`,
+        initialValue: false,
+      })
 
-    if (p.isCancel(overwrite) || !overwrite) {
-      p.log.info(`Skipping installation of '${skillName}'.`)
-      return
+      if (p.isCancel(overwrite) || !overwrite) {
+        p.log.info(`Skipping installation of '${skillName}'.`)
+        return
+      }
     }
   }
 

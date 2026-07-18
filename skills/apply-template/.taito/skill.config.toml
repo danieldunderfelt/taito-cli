@@ -1,0 +1,26 @@
+[meta]
+name = "apply-template"
+version = "1.0.0"
+description = "Apply a Taito template onto an existing project while preserving project-specific content"
+
+[variables.PREFERRED_AGENT]
+type = "choice"
+prompt = "Which AI agent do you primarily use?"
+default = "cursor"
+
+  [[variables.PREFERRED_AGENT.options]]
+  value = "cursor"
+  label = "Cursor"
+
+  [[variables.PREFERRED_AGENT.options]]
+  value = "claude-code"
+  label = "Claude Code"
+
+  [[variables.PREFERRED_AGENT.options]]
+  value = "codex"
+  label = "Codex"
+
+[variables.EMPHASIS]
+type = "array"
+prompt = "Emphasize which concerns? (comma-separated: merging, skills, update)"
+default = ["merging", "skills", "update"]

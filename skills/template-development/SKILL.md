@@ -37,6 +37,10 @@ taito new project ./acme-app -t project-template
 # Pull template updates into a project or child template
 taito update
 
+# Apply a template onto an *existing* project (file-by-file; see apply-template skill)
+taito apply plan -t project-template --json
+taito apply finalize -t project-template
+
 # List / remove
 taito list
 taito remove project-template

@@ -162,6 +162,66 @@ export interface NewSkillOptions {
 }
 
 /**
+ * Options for applying a template to an existing project
+ */
+export interface ApplyOptions {
+  template: string
+  config?: string
+  json?: boolean
+  force?: boolean
+  agent?: string
+}
+
+/**
+ * Per-file status when applying a template onto an existing project
+ */
+export type ApplyFileStatus = 'missing' | 'identical' | 'differs'
+
+/**
+ * Suggested action for agents / interactive apply
+ */
+export type ApplyStrategyHint = 'write' | 'skip' | 'merge'
+
+export interface ApplyFileEntry {
+  path: string
+  status: ApplyFileStatus
+  hint: ApplyStrategyHint
+  /** Bytes in rendered template file */
+  templateBytes: number
+  /** Bytes in project file (0 if missing) */
+  projectBytes: number
+  /** True when project content is substantially larger than the template (likely project-specific) */
+  projectRicher: boolean
+}
+
+export interface ApplySkillEntry {
+  name: string
+  relativePath: string
+  customizable: boolean
+  status: 'missing' | 'present'
+  /** Absolute path in the template source */
+  templatePath: string
+}
+
+export interface ApplyPlan {
+  template: string
+  templatePath: string
+  templateCommit: string
+  projectPath: string
+  variables: VariableValues
+  components: ComponentValues
+  files: ApplyFileEntry[]
+  skills: ApplySkillEntry[]
+  summary: {
+    missing: number
+    identical: number
+    differs: number
+    skillsMissing: number
+    skillsPresent: number
+  }
+}
+
+/**
  * Parsed skill/template source (GitHub or local path)
  */
 export interface SkillSource {

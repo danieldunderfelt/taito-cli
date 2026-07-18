@@ -1,0 +1,96 @@
+---
+name: apply-template
+description: Apply a Taito project template onto an existing codebase. Use when the user wants to bring an existing project in line with a registered taito template while preserving project-specific content, merge CLAUDE.md/AGENT.md/docs carefully, install template skills, and leave the project ready for `taito update`.
+---
+
+# Apply Template
+
+Bring an **existing project** up to a registered Taito template without wiping project-specific work. Prefer careful merges over overwrites. When finished, the project must have `.taito/project.meta.toml` so later `taito update` behaves like a project created with `taito new project`.
+
+Preferred agent context: **<%= PREFERRED_AGENT %>**.
+
+## When to use
+
+- User asks to apply / adopt / align with a taito template on a repo that already has code
+- Template has stubs (e.g. `docs/PROJECT.md`) but the project already has rich versions
+- Need to merge agent docs (`CLAUDE.md`, `AGENT.md`) rather than replace them
+- Want one-by-one control instead of `taito new project` into a non-empty folder
+
+## Prerequisites
+
+```bash
+taito list
+taito add ~/Work/project-template
+```
+
+## Agent workflow (required order)
+
+Work from the **project root**. Use `--json` so you can parse results. Do **not** bulk-overwrite differing files.
+
+### 1. Plan
+
+```bash
+taito apply plan -t <template> --json
+```
+
+Inspect `files[]` / `skills[]` statuses and `projectRicher`.
+
+### 2. Missing files → write
+
+```bash
+taito apply write -t <template> --file <path> --json
+```
+
+### 3. Identical → skip
+
+### 4. Differing files → merge carefully
+
+```bash
+taito apply cat -t <template> --file <path>
+```
+
+Then edit the project file. Follow [references/MERGE-GUIDE.md](references/MERGE-GUIDE.md).
+
+**Hard rules:**
+
+- If `projectRicher` is true → preserve project content; only fold in genuinely new structure/sections
+- Stub templates must **not** replace filled-in project docs
+- For `CLAUDE.md` / `AGENT.md`: merge — keep project-specific rules, update overlapping guidance, add new relevant parts
+- Do **not** use `taito apply write --force` on richer files unless the user explicitly demands it
+
+<% if (EMPHASIS.includes('skills')) { %>
+### 5. Skills
+
+```bash
+taito apply skill -t <template> --skill <name>
+```
+
+Skip skills that are already `present` unless asked to refresh.
+<% } %>
+
+<% if (EMPHASIS.includes('update')) { %>
+### 6. Finalize (mandatory)
+
+```bash
+taito apply finalize -t <template> --json
+```
+
+After this, `taito update` works like a greenfield `taito new project` install.
+<% } %>
+
+## Success criteria
+
+- Missing files written; differing files merged with project-specific content preserved
+- Needed skills installed
+- `.taito/project.meta.toml` exists via `finalize`
+
+## References
+
+- [references/MERGE-GUIDE.md](references/MERGE-GUIDE.md)
+- [references/CLI.md](references/CLI.md)
+
+## Anti-patterns
+
+- Mass overwrite of `differs` files
+- Replacing a long `docs/PROJECT.md` with a stub
+- Forgetting `finalize`

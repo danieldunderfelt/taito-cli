@@ -2,6 +2,13 @@
 import { Command } from 'commander'
 
 import { addCommand } from '../src/commands/add.js'
+import {
+  applyCatCommand,
+  applyFinalizeCommand,
+  applyPlanCommand,
+  applySkillCommand,
+  applyWriteCommand,
+} from '../src/commands/apply.js'
 import { buildCommand } from '../src/commands/build.js'
 import { listCommand } from '../src/commands/list.js'
 import { newProjectCommand } from '../src/commands/new-project.js'
@@ -107,6 +114,103 @@ program
   )
   .action(async (path: string | undefined) => {
     await updateCommand(path ?? '.')
+  })
+
+const applyCmd = program
+  .command('apply')
+  .description(
+    'Apply a registered template onto an existing project (file-by-file, agent-friendly)'
+  )
+
+applyCmd
+  .command('plan [path]')
+  .description(
+    'List template files/skills vs the project (statuses: missing|identical|differs)'
+  )
+  .requiredOption('-t, --template <name>', 'Registered template name')
+  .option('-c, --config <path>', 'Preset answers TOML')
+  .option('--json', 'Machine-readable JSON output')
+  .action(async (path: string | undefined, options) => {
+    await applyPlanCommand(path ?? '.', {
+      template: options.template,
+      config: options.config,
+      json: options.json,
+    })
+  })
+
+applyCmd
+  .command('cat')
+  .description('Print the rendered template content for one file')
+  .requiredOption('-t, --template <name>', 'Registered template name')
+  .requiredOption('-f, --file <path>', 'Relative file path in the template')
+  .option('-c, --config <path>', 'Preset answers TOML')
+  .option('--json', 'Wrap content in JSON')
+  .action(async (options) => {
+    await applyCatCommand({
+      template: options.template,
+      file: options.file,
+      config: options.config,
+      json: options.json,
+    })
+  })
+
+applyCmd
+  .command('write [path]')
+  .description(
+    'Write one rendered template file into the project (refuses overwrite unless --force)'
+  )
+  .requiredOption('-t, --template <name>', 'Registered template name')
+  .requiredOption('-f, --file <path>', 'Relative file path to write')
+  .option('-c, --config <path>', 'Preset answers TOML')
+  .option('--force', 'Overwrite differing project file')
+  .option('--json', 'Machine-readable JSON output')
+  .action(async (path: string | undefined, options) => {
+    await applyWriteCommand(path ?? '.', {
+      template: options.template,
+      file: options.file,
+      config: options.config,
+      force: options.force,
+      json: options.json,
+    })
+  })
+
+applyCmd
+  .command('skill [path]')
+  .description('Install one skill from the template into the project')
+  .requiredOption('-t, --template <name>', 'Registered template name')
+  .requiredOption(
+    '-s, --skill <name>',
+    'Skill directory name or relative path'
+  )
+  .option('-c, --config <path>', 'Preset answers TOML for skill customization')
+  .option('-a, --agent <agent>', 'Target agent for skill install')
+  .option('--force', 'Overwrite existing skill without prompting')
+  .action(async (path: string | undefined, options) => {
+    await applySkillCommand(path ?? '.', {
+      template: options.template,
+      skill: options.skill,
+      config: options.config,
+      agent: options.agent,
+      force: options.force,
+    })
+  })
+
+applyCmd
+  .command('finalize [path]')
+  .description(
+    'Write .taito/project.meta.toml so `taito update` works after a manual apply'
+  )
+  .requiredOption('-t, --template <name>', 'Registered template name')
+  .option('-c, --config <path>', 'Preset answers TOML')
+  .option('--force', 'Overwrite existing project.meta.toml')
+  .option('--json', 'Machine-readable JSON output')
+  .action(async (path: string | undefined, options) => {
+    await applyFinalizeCommand(path ?? '.', {
+      template: options.template,
+      config: options.config,
+      force: options.force,
+      json: options.json,
+    })
   })
 
 program

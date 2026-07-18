@@ -125,6 +125,36 @@ Scaffold a customizable skill (`SKILL.md` + `.taito/skill.config.toml` + `.taito
 
 Pull updates from the base template into a **project** or **child template** (defaults to `.`).
 
+### `taito apply` — adopt a template on an existing project
+
+For repos that already have content, use file-by-file apply instead of `taito new project`:
+
+```bash
+# Inventory (machine-readable for agents)
+taito apply plan -t project-template --json
+
+# Safe: write files the project is missing
+taito apply write -t project-template --file docs/architecture/.gitkeep
+
+# Inspect template content to merge by hand (do not blind-overwrite richer project files)
+taito apply cat -t project-template --file CLAUDE.md
+taito apply cat -t project-template --file docs/PROJECT.md
+
+# Install one template skill
+taito apply skill -t project-template --skill design
+
+# Record origin so future `taito update` works
+taito apply finalize -t project-template
+```
+
+Statuses from `plan`: `missing` → write; `identical` → skip; `differs` → merge carefully (`projectRicher` means keep project content).
+
+Agent skill for this workflow:
+
+```bash
+taito add danieldunderfelt/taito-cli/skills/apply-template
+```
+
 ### `taito list` / `taito remove` / `taito build`
 
 - `list` — registered templates and installed skills
