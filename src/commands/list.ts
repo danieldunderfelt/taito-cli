@@ -5,9 +5,9 @@ import * as p from '@clack/prompts'
 import { getInstalledSkills } from '../lib/metadata.js'
 import {
   agentConfigs,
-  detectAllAgents,
+  findSkillLinks,
   findWorkspaceRoot,
-  getSkillsDir,
+  getCanonicalSkillsDir,
 } from '../lib/paths.js'
 import { listRegisteredTemplates } from '../lib/registry.js'
 
@@ -18,9 +18,7 @@ export async function listCommand(): Promise<void> {
   const templates = listRegisteredTemplates()
 
   if (templates.length > 0) {
-    p.log.info(
-      `\nTemplates (${templates.length}):`
-    )
+    p.log.info(`\nTemplates (${templates.length}):`)
     p.log.message('')
 
     for (const tpl of templates) {
@@ -40,51 +38,39 @@ export async function listCommand(): Promise<void> {
   }
 
   const workspaceRoot = findWorkspaceRoot()
-  const detectedAgents = detectAllAgents(workspaceRoot)
+  const skillsDir = getCanonicalSkillsDir(false, workspaceRoot)
 
-  if (detectedAgents.length === 0) {
-    p.log.info('Skills: no agents detected in workspace.')
+  if (!existsSync(skillsDir)) {
+    p.log.info('Skills: none installed yet (.agents/skills not found).')
+    p.log.message('  Install with: taito add owner/repo')
     return
   }
 
-  let totalSkills = 0
+  const skills = getInstalledSkills('agents', false, workspaceRoot)
 
-  for (const agent of detectedAgents) {
-    const config = agentConfigs[agent]
-    const skillsDir = getSkillsDir(agent, false, workspaceRoot)
-
-    if (!existsSync(skillsDir)) {
-      continue
-    }
-
-    const skills = getInstalledSkills(agent, false, workspaceRoot)
-
-    if (skills.length === 0) {
-      continue
-    }
-
-    totalSkills += skills.length
-
-    p.log.info(
-      `${config.name} (${skills.length} skill${skills.length > 1 ? 's' : ''}):`
-    )
-    p.log.message('')
-
-    for (const skill of skills) {
-      const customLabel = skill.customized ? ' (customized)' : ''
-      const date = new Date(skill.installedAt).toLocaleDateString()
-
-      p.log.message(`  ${skill.name}${customLabel}`)
-      p.log.message(`    Source: ${skill.source}`)
-      p.log.message(`    Installed: ${date}`)
-      p.log.message('')
-    }
-
-    p.log.message(`  Directory: ${skillsDir}`)
-    p.log.message('')
+  if (skills.length === 0) {
+    p.log.info(`Skills: none recorded in ${skillsDir}`)
+    return
   }
 
-  if (totalSkills === 0) {
-    p.log.info('Skills: none installed yet.')
+  p.log.info(
+    `Skills (${skills.length}) — canonical: ${skillsDir}`
+  )
+  p.log.message('')
+
+  for (const skill of skills) {
+    const customLabel = skill.customized ? ' (customized)' : ''
+    const date = new Date(skill.installedAt).toLocaleDateString()
+    const links = findSkillLinks(skill.name, workspaceRoot, false)
+    const linkLabel =
+      links.length > 0
+        ? links.map((a) => agentConfigs[a].name).join(', ')
+        : 'none'
+
+    p.log.message(`  ${skill.name}${customLabel}`)
+    p.log.message(`    Source: ${skill.source}`)
+    p.log.message(`    Installed: ${date}`)
+    p.log.message(`    Symlinks: ${linkLabel}`)
+    p.log.message('')
   }
 }

@@ -1,5 +1,4 @@
 import { existsSync, mkdirSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
 
 import * as p from '@clack/prompts'
 
@@ -13,8 +12,9 @@ import {
 } from '../lib/git.js'
 import {
   agentConfigs,
-  detectAllAgents,
-  getSkillOutputDir,
+  getDefaultAgentSelection,
+  getSelectableAgents,
+  resolveAgentType,
   type AgentType,
 } from '../lib/paths.js'
 import { getRegisteredTemplate } from '../lib/registry.js'
@@ -106,20 +106,16 @@ export async function newProjectCommand(
         `Customizing ${result.deferredSkills.length} skill(s) from template...`
       )
 
-      const agent = await resolveAgent(dest, options.agent)
+      const agents = await resolveProjectAgents(dest, options.agent)
 
       for (const skill of result.deferredSkills) {
-        const skillName = skill.dirName
-        const outputDir = getSkillOutputDir(skillName, agent, false, dest)
-
         await installSingleSkill(
           skill.path,
           `template:${template.name}`,
           {
-            output: outputDir,
             // Don't pass config — skill gets its own prompts
           },
-          agent,
+          agents,
           dest
         )
       }
@@ -156,48 +152,41 @@ export async function newProjectCommand(
   }
 }
 
-async function resolveAgent(
+async function resolveProjectAgents(
   projectRoot: string,
   agentOption?: string
-): Promise<AgentType> {
+): Promise<AgentType[]> {
   if (agentOption) {
-    const normalizedInput = agentOption.toLowerCase()
-    const matchedAgent = Object.keys(agentConfigs).find(
-      (key) => key.toLowerCase() === normalizedInput
-    ) as AgentType | undefined
-
-    if (!matchedAgent) {
-      throw new Error(
-        `Unknown agent: ${agentOption}. Available: ${Object.keys(agentConfigs).join(', ')}`
-      )
+    const parts = agentOption.split(',').map((s) => s.trim()).filter(Boolean)
+    const resolved: AgentType[] = []
+    for (const part of parts) {
+      const matched = resolveAgentType(part)
+      if (!matched) {
+        throw new Error(
+          `Unknown agent: ${part}. Try .agents, claudeCode, cursor, …`
+        )
+      }
+      if (!resolved.includes(matched)) resolved.push(matched)
     }
-    return matchedAgent
+    if (!resolved.includes('agents')) resolved.unshift('agents')
+    return resolved
   }
 
-  const detected = detectAllAgents(projectRoot)
-  if (detected.length === 0) {
-    // Prefer amp (.agents/skills) if present in template tree, else cursor
-    if (existsSync(join(projectRoot, '.agents'))) {
-      return 'amp'
-    }
-    if (existsSync(join(projectRoot, '.claude'))) {
-      return 'claudeCode'
-    }
-    p.log.warn('No agent detected. Defaulting to Cursor.')
-    return 'cursor'
-  }
+  const selectable = getSelectableAgents(projectRoot)
+  const preselected = getDefaultAgentSelection(projectRoot)
 
-  if (detected.length === 1) {
-    p.log.info(`Detected agent: ${agentConfigs[detected[0]].name}`)
-    return detected[0]
-  }
-
-  const selected = await p.select({
-    message: 'Which agent should template skills install for?',
-    options: detected.map((a) => ({
+  const selected = await p.multiselect({
+    message: 'Which agents should template skills install for?',
+    options: selectable.map((a) => ({
       value: a,
       label: agentConfigs[a].name,
+      hint:
+        a === 'agents'
+          ? 'canonical .agents/skills'
+          : `symlink → ${agentConfigs[a].localPath}`,
     })),
+    initialValues: preselected,
+    required: true,
   })
 
   if (p.isCancel(selected)) {
@@ -205,5 +194,7 @@ async function resolveAgent(
     process.exit(0)
   }
 
-  return selected
+  const agents = [...selected]
+  if (!agents.includes('agents')) agents.unshift('agents')
+  return agents
 }

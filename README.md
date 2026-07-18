@@ -232,15 +232,20 @@ taito add danieldunderfelt/taito-cli/skills/customizable-skills
 
 ### Multi-Agent Support
 
-Skills install to the correct location for your agent:
+Skills always install to the canonical **`.agents/skills/`** directory (same convention as [skills.sh](https://skills.sh)). The installer prompts for agents with a multiselect:
 
-- **Cursor** (`.cursor/skills/`)
-- **Windsurf** (`.windsurf/skills/`)
-- **Claude Code** (`.claude/skills/`)
-- **Clawdbot** (`<workspace>/skills/`)
-- **Codex**, **OpenCode**, **GitHub Copilot**, **VS Code**, **Gemini CLI**, **Goose**, **AMP**, **Trae**, **Antigravity**
+- **`.agents`** — canonical install (covers tools that read `.agents/skills`, not listed separately as “Amp” / “Goose”)
+- **Claude Code**, **Cursor**, **Windsurf**, etc. — get a **symlink** from their agent path → `.agents/skills/<skill>`
 
-Use `--agent` to force a target, or `--global` where supported.
+```bash
+# Interactive: pick .agents and/or Claude Code, Cursor, …
+taito add owner/repo
+
+# Non-interactive: canonical + Claude symlink
+taito add owner/repo --agent .agents,claudeCode
+```
+
+Use `--global` where supported (canonical `~/.agents/skills`).
 
 ## Creating Customizable Skills
 

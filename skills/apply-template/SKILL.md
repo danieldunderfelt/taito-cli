@@ -1,30 +1,55 @@
 ---
 name: apply-template
-description: Apply a Taito project template onto an existing codebase. Use when the user wants to bring an existing project in line with a registered taito template while preserving project-specific content, merge CLAUDE.md/AGENT.md/docs carefully, install template skills, and leave the project ready for `taito update`.
+description: Apply a specific named Taito project template onto an existing codebase. Use when the user wants to bring an existing project in line with one registered taito template while preserving project-specific content, merge CLAUDE.md/AGENT.md/docs carefully, install template skills, and leave the project ready for `taito update`.
 ---
 
 # Apply Template
 
-Bring an **existing project** up to a registered Taito template without wiping project-specific work. Prefer careful merges over overwrites. When finished, the project must have `.taito/project.meta.toml` so later `taito update` behaves like a project created with `taito new project`.
+Bring an **existing project** up to **one** registered Taito template without wiping project-specific work. Prefer careful merges over overwrites. When finished, the project must have `.taito/project.meta.toml` so later `taito update` behaves like a project created with `taito new project`.
 
 ## When to use
 
-- User asks to apply / adopt / align with a taito template on a repo that already has code
+- User asks to apply / adopt / align with a **named** taito template on a repo that already has code
 - Template has stubs (e.g. `docs/PROJECT.md`) but the project already has rich versions
 - Need to merge agent docs (`CLAUDE.md`, `AGENT.md`) rather than replace them
 - Want one-by-one control instead of `taito new project` into a non-empty folder
 - Final step of **create-template**: apply a freshly extracted template back onto its source project
 
-## Prerequisites
+## Step 0 — Resolve exactly one template (mandatory gate)
+
+Do **not** plan, write, merge, install skills, or finalize until this step succeeds.
+
+### 0a. Identify the template name
+
+- If the user **named** a template (e.g. “apply `web`”, “use the expo template”), use that exact name.
+- If they did **not** name one, **stop and ask** which registered template to apply. Do not guess, do not pick “the only one”, and do not apply multiple templates.
+- Apply **only** that one template for the whole run. Never blend files/skills from other templates.
+
+### 0b. Confirm it is registered
 
 ```bash
-# Template must be registered
 taito list
-# If needed:
-taito add [path to template]
-# or
-taito add owner/template-repo
 ```
+
+Find the template under **Templates**. Alternatively check whether `taito apply plan -t <name> --json` fails with an unknown-template error.
+
+### 0c. If it is not registered — STOP
+
+Do **not** invent a path, scan the filesystem for lookalike folders, or proceed with apply.
+
+Tell the user clearly that the template must be registered first, for example:
+
+> Template `<name>` is not registered with Taito. Register it first, then ask me to apply again:
+>
+> ```bash
+> taito add <path-to-template>
+> # or
+> taito add owner/template-repo
+> ```
+>
+> Then confirm with `taito list`.
+
+Only continue after the user has registered it (or names a different registered template).
 
 Optional answers file for non-interactive customization:
 
@@ -38,7 +63,7 @@ architecture_docs = true
 
 ## Agent workflow (required order)
 
-Work from the **project root**. Use `--json` so you can parse results. Do **not** bulk-overwrite differing files.
+Work from the **project root**. Use `--json` so you can parse results. Pass the **same** `-t <template>` on every command. Do **not** bulk-overwrite differing files.
 
 ### 1. Plan
 
@@ -111,6 +136,8 @@ This writes `.taito/project.meta.toml` (and `.taito/apply-answers.toml`). After 
 
 ## Success criteria
 
+- [ ] User named a template (or answered when asked); only that template was used
+- [ ] Template was confirmed registered via `taito list` (or apply refused unknown names)
 - [ ] Plan reviewed; missing files written
 - [ ] Differing files merged with project-specific content preserved
 - [ ] Needed skills installed
@@ -122,6 +149,7 @@ This writes `.taito/project.meta.toml` (and `.taito/apply-answers.toml`). After 
 
 | Command | Purpose |
 |---------|---------|
+| `taito list` | Confirm the named template is registered |
 | `taito apply plan -t NAME --json` | Full inventory + statuses |
 | `taito apply cat -t NAME --file PATH` | Rendered template file content |
 | `taito apply write -t NAME --file PATH` | Add missing file (no overwrite) |
@@ -131,6 +159,9 @@ This writes `.taito/project.meta.toml` (and `.taito/apply-answers.toml`). After 
 
 ## Anti-patterns
 
+- Applying without a user-named template, or guessing which template to use
+- Applying more than one template in a single request
+- Continuing when the template is not registered (must stop and ask for `taito add`)
 - Running `taito new project` into a filled repo and accepting mass overwrites
 - `apply write --force` on every `differs` file
 - Replacing a long `docs/PROJECT.md` with a template stub

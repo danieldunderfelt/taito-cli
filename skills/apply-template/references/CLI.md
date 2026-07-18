@@ -1,14 +1,22 @@
 # `taito apply` CLI Reference
 
-Apply a registered template onto an existing project, file-by-file.
+Apply **one** registered template onto an existing project, file-by-file.
+
+## Before any apply command
+
+1. The user must name the template (ask if they didn’t).
+2. Confirm registration with `taito list`.
+3. If missing, stop and tell them to run `taito add <path-or-repo>` first — do not proceed.
+
+Every apply subcommand requires `-t <registered-name>` for that same template.
 
 ## `taito apply plan [path] -t <template>`
 
 Compare the rendered template to the project.
 
 ```bash
-taito apply plan -t project-template --json
-taito apply plan . -t project-template -c answers.toml --json
+taito apply plan -t web --json
+taito apply plan . -t web -c answers.toml --json
 ```
 
 JSON fields of interest:
@@ -56,8 +64,8 @@ With `--json`, customization uses defaults (or `-c` answers) — no interactive 
 Print the **rendered** template content for one relative path (after variables/components).
 
 ```bash
-taito apply cat -t project-template --file CLAUDE.md
-taito apply cat -t project-template --file docs/PROJECT.md --json
+taito apply cat -t web --file CLAUDE.md
+taito apply cat -t web --file docs/PROJECT.md --json
 ```
 
 ## `taito apply write [path] -t <template> --file <path>`
@@ -68,8 +76,8 @@ Write one rendered file into the project.
 - Safe for `status: missing`
 
 ```bash
-taito apply write -t project-template --file docs/architecture/.gitkeep --json
-taito apply write -t project-template --file README.md --force   # dangerous
+taito apply write -t web --file docs/architecture/.gitkeep --json
+taito apply write -t web --file README.md --force   # dangerous
 ```
 
 ## `taito apply skill [path] -t <template> --skill <name>`
@@ -77,8 +85,8 @@ taito apply write -t project-template --file README.md --force   # dangerous
 Install one skill from the template (runs the normal skill customizer when applicable).
 
 ```bash
-taito apply skill -t project-template --skill design
-taito apply skill -t project-template --skill design --force --agent cursor
+taito apply skill -t web --skill design
+taito apply skill -t web --skill design --force --agent cursor
 ```
 
 ## `taito apply finalize [path] -t <template>`
@@ -86,8 +94,8 @@ taito apply skill -t project-template --skill design --force --agent cursor
 Write `.taito/project.meta.toml` so `taito update` works afterward. Also writes `.taito/apply-answers.toml` with the variables/components used.
 
 ```bash
-taito apply finalize -t project-template --json
-taito apply finalize -t project-template -c answers.toml --force
+taito apply finalize -t web --json
+taito apply finalize -t web -c answers.toml --force
 ```
 
 ## Relationship to other commands

@@ -31,11 +31,16 @@ import {
 import { recordInstalledSkill } from '../lib/metadata.js'
 import {
   agentConfigs,
-  detectAllAgents,
+  ensureSkillSymlink,
   findWorkspaceRoot,
+  getCanonicalSkillOutputDir,
+  getDefaultAgentSelection,
+  getSelectableAgents,
   getSkillConfigPath,
   getSkillOutputDir,
+  getSymlinkAgents,
   isCustomizableSkill,
+  resolveAgentType,
   type AgentType,
 } from '../lib/paths.js'
 import { clearVariableCache, promptForVariables } from '../lib/prompts.js'
@@ -205,53 +210,10 @@ async function installSkillsFromDir(
     }
 
     const workspaceRoot = findWorkspaceRoot()
-    let agent: AgentType | undefined
+    let selectedAgents: AgentType[] = ['agents']
 
-    if (options.agent) {
-      const normalizedInput = options.agent.toLowerCase()
-      const matchedAgent = Object.keys(agentConfigs).find(
-        (key) => key.toLowerCase() === normalizedInput
-      ) as AgentType | undefined
-
-      if (!matchedAgent) {
-        p.log.error(`Unknown agent: ${options.agent}`)
-        p.log.message(
-          `Available agents: ${Object.keys(agentConfigs).join(', ')}`
-        )
-        process.exit(1)
-      }
-      agent = matchedAgent
-    } else if (!options.output) {
-      const detectedAgents = detectAllAgents(workspaceRoot)
-
-      if (detectedAgents.length === 0) {
-        p.log.warn('No agent detected in workspace. Defaulting to Cursor.')
-        agent = 'cursor'
-      } else if (detectedAgents.length === 1) {
-        agent = detectedAgents[0]
-        p.log.info(`Detected agent: ${agentConfigs[agent].name}`)
-      } else {
-        p.log.info(
-          `Multiple agents detected: ${detectedAgents
-            .map((a) => agentConfigs[a].name)
-            .join(', ')}`
-        )
-
-        const selected = await p.select({
-          message: 'Which agent do you want to install the skill for?',
-          options: detectedAgents.map((a) => ({
-            value: a,
-            label: agentConfigs[a].name,
-          })),
-        })
-
-        if (p.isCancel(selected)) {
-          p.cancel('Installation cancelled.')
-          process.exit(0)
-        }
-
-        agent = selected
-      }
+    if (!options.output) {
+      selectedAgents = await resolveInstallAgents(options.agent, workspaceRoot)
     }
 
     let skillsToInstall: DiscoveredSkill[]
@@ -282,7 +244,7 @@ async function installSkillsFromDir(
         discoveredSkill.path,
         source,
         options,
-        agent,
+        selectedAgents,
         workspaceRoot,
         spinner
       )
@@ -295,17 +257,92 @@ async function installSkillsFromDir(
 }
 
 /**
- * Install a single skill (exported for project init)
+ * Resolve which agents to install/link for, via --agent or interactive multiselect.
+ * Always installs to canonical `.agents/skills`; other selections become symlinks.
+ */
+export async function resolveInstallAgents(
+  agentOption: string | undefined,
+  workspaceRoot: string
+): Promise<AgentType[]> {
+  if (agentOption) {
+    const parts = agentOption.split(',').map((s) => s.trim()).filter(Boolean)
+    const resolved: AgentType[] = []
+    for (const part of parts) {
+      const matched = resolveAgentType(part)
+      if (!matched) {
+        p.log.error(`Unknown agent: ${part}`)
+        p.log.message(
+          `Available: .agents, ${Object.keys(agentConfigs)
+            .filter((k) => k !== 'agents')
+            .join(', ')}`
+        )
+        process.exit(1)
+      }
+      if (!resolved.includes(matched)) resolved.push(matched)
+    }
+    // Canonical is always included so the skill has a real install location
+    if (!resolved.includes('agents')) {
+      resolved.unshift('agents')
+    }
+    return resolved
+  }
+
+  const selectable = getSelectableAgents(workspaceRoot)
+  const preselected = getDefaultAgentSelection(workspaceRoot)
+
+  p.log.info(
+    'Skills install to .agents/skills; other selected agents get symlinks.'
+  )
+
+  const selected = await p.multiselect({
+    message: 'Which agents should receive this skill?',
+    options: selectable.map((a) => ({
+      value: a,
+      label: agentConfigs[a].name,
+      hint:
+        a === 'agents'
+          ? 'canonical install location'
+          : `symlink → ${agentConfigs[a].localPath}`,
+    })),
+    initialValues: preselected,
+    required: true,
+  })
+
+  if (p.isCancel(selected)) {
+    p.cancel('Installation cancelled.')
+    process.exit(0)
+  }
+
+  const agents = [...selected]
+  if (!agents.includes('agents')) {
+    agents.unshift('agents')
+  }
+  return agents
+}
+
+/**
+ * Install a single skill (exported for project init).
+ * Writes to `.agents/skills/<name>`, then symlinks into other selected agents.
  */
 export async function installSingleSkill(
   skillDir: string,
   source: string,
   options: AddOptions,
-  agent: AgentType | undefined,
+  agents: AgentType[] | AgentType | undefined,
   workspaceRoot: string,
   spinner?: ReturnType<typeof p.spinner>
 ): Promise<void> {
   const activeSpinner = spinner ?? p.spinner()
+  const selectedAgents: AgentType[] = !agents
+    ? ['agents']
+    : Array.isArray(agents)
+      ? agents.includes('agents')
+        ? agents
+        : ['agents', ...agents]
+      : agents === 'agents'
+        ? ['agents']
+        : ['agents', agents]
+
   const customizable = isCustomizableSkill(skillDir)
   let skillName: string
   let customized = false
@@ -331,16 +368,17 @@ export async function installSingleSkill(
     p.log.info(`Installing standard skill: ${skillName}`)
   }
 
+  // Custom --output bypasses canonical/symlink model
   const outputDir = options.output
     ? resolve(options.output)
-    : getSkillOutputDir(skillName, agent, options.global, workspaceRoot)
+    : getCanonicalSkillOutputDir(skillName, options.global, workspaceRoot)
 
   if (existsSync(outputDir) && !options.dryRun) {
     if (options.force) {
-      // Agent/non-interactive overwrite
+      // overwrite
     } else {
       const overwrite = await p.confirm({
-        message: `Skill '${skillName}' already exists. Overwrite?`,
+        message: `Skill '${skillName}' already exists in .agents/skills. Overwrite?`,
         initialValue: false,
       })
 
@@ -351,13 +389,34 @@ export async function installSingleSkill(
     }
   }
 
-  activeSpinner.start(`Installing ${skillName}...`)
+  activeSpinner.start(`Installing ${skillName} to .agents/skills...`)
 
   let files: string[]
   if (customizable) {
     files = await renderSkill(skillDir, outputDir, values, options.dryRun)
   } else {
     files = copyStandardSkill(skillDir, outputDir, options.dryRun)
+  }
+
+  const linked: string[] = []
+  if (!options.output && !options.dryRun) {
+    for (const agent of getSymlinkAgents(selectedAgents)) {
+      const linkPath = getSkillOutputDir(
+        skillName,
+        agent,
+        options.global,
+        workspaceRoot
+      )
+      try {
+        ensureSkillSymlink(outputDir, linkPath)
+        linked.push(`${agentConfigs[agent].name} (${agentConfigs[agent].localPath})`)
+      } catch (error) {
+        const err = error as Error
+        p.log.warn(
+          `Could not symlink for ${agentConfigs[agent].name}: ${err.message}`
+        )
+      }
+    }
   }
 
   activeSpinner.stop(`${skillName} installed!`)
@@ -368,16 +427,22 @@ export async function installSingleSkill(
       source,
       customized,
       customized ? values : undefined,
-      agent,
+      'agents',
       options.global,
       workspaceRoot
     )
   }
 
-  const agentName = agent ? agentConfigs[agent].name : 'default location'
   const globalLabel = options.global ? ' (global)' : ''
-  p.log.success(`Installed ${skillName} to ${outputDir}`)
-  p.log.message(`Agent: ${agentName}${globalLabel}`)
+  p.log.success(`Installed ${skillName} to ${outputDir}${globalLabel}`)
+  if (linked.length > 0) {
+    p.log.message('Symlinked to:')
+    for (const label of linked) {
+      p.log.message(`  → ${label}`)
+    }
+  } else if (!options.output) {
+    p.log.message('Agents: .agents (canonical)')
+  }
   for (const file of files.slice(0, 10)) {
     p.log.message(`  ${file}`)
   }

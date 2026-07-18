@@ -22,8 +22,9 @@ import { expandPath } from '../lib/github.js'
 import { revParse } from '../lib/git.js'
 import {
   agentConfigs,
-  detectAllAgents,
-  getSkillOutputDir,
+  getDefaultAgentSelection,
+  getSelectableAgents,
+  resolveAgentType,
   type AgentType,
 } from '../lib/paths.js'
 import { getRegisteredTemplate } from '../lib/registry.js'
@@ -176,18 +177,16 @@ export async function applySkillCommand(
       process.exit(1)
     }
 
-    const agent = await resolveAgent(projectPath, options.agent)
-    const outputDir = getSkillOutputDir(skill.name, agent, false, projectPath)
+    const agents = await resolveApplyAgents(projectPath, options.agent)
 
     await installSingleSkill(
       skill.templatePath,
       `template:${registered.name}`,
       {
-        output: outputDir,
         config: options.config,
         force: options.force,
       },
-      agent,
+      agents,
       projectPath
     )
   } finally {
@@ -350,35 +349,43 @@ function printPlanHuman(plan: ApplyPlan): void {
   p.log.message('  5. taito apply finalize -t NAME')
 }
 
-async function resolveAgent(
+async function resolveApplyAgents(
   projectRoot: string,
   agentOption?: string
-): Promise<AgentType> {
+): Promise<AgentType[]> {
   if (agentOption) {
-    const normalizedInput = agentOption.toLowerCase()
-    const matchedAgent = Object.keys(agentConfigs).find(
-      (key) => key.toLowerCase() === normalizedInput
-    ) as AgentType | undefined
-    if (!matchedAgent) {
-      throw new Error(`Unknown agent: ${agentOption}`)
+    const parts = agentOption.split(',').map((s) => s.trim()).filter(Boolean)
+    const resolved: AgentType[] = []
+    for (const part of parts) {
+      const matched = resolveAgentType(part)
+      if (!matched) throw new Error(`Unknown agent: ${part}`)
+      if (!resolved.includes(matched)) resolved.push(matched)
     }
-    return matchedAgent
+    if (!resolved.includes('agents')) resolved.unshift('agents')
+    return resolved
   }
 
-  const detected = detectAllAgents(projectRoot)
-  if (detected.length === 0) return 'cursor'
-  if (detected.length === 1) return detected[0]
+  const selectable = getSelectableAgents(projectRoot)
+  const preselected = getDefaultAgentSelection(projectRoot)
 
-  const selected = await p.select({
-    message: 'Which agent for skill install?',
-    options: detected.map((a) => ({
+  const selected = await p.multiselect({
+    message: 'Which agents for skill install?',
+    options: selectable.map((a) => ({
       value: a,
       label: agentConfigs[a].name,
+      hint:
+        a === 'agents'
+          ? 'canonical .agents/skills'
+          : `symlink → ${agentConfigs[a].localPath}`,
     })),
+    initialValues: preselected,
+    required: true,
   })
   if (p.isCancel(selected)) {
     p.cancel('Cancelled.')
     process.exit(0)
   }
-  return selected
+  const agents = [...selected]
+  if (!agents.includes('agents')) agents.unshift('agents')
+  return agents
 }

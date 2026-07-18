@@ -44,7 +44,7 @@ program
   .option('-r, --ref <ref>', 'Git ref (branch, tag, or commit)')
   .option(
     '-a, --agent <agent>',
-    'Target agent (cursor, claudeCode, windsurf, etc.)'
+    'Target agent(s): .agents, claudeCode, cursor, … (comma-separated; installs to .agents/skills and symlinks others)'
   )
   .option('-g, --global', 'Install skill globally instead of locally')
   .option(

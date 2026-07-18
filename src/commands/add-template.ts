@@ -1,10 +1,4 @@
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  rmSync,
-} from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 
 import * as p from '@clack/prompts'
@@ -20,6 +14,10 @@ import {
   isGitRepo,
   worktreeAdd,
 } from '../lib/git.js'
+import {
+  copyTreePreservingSymlinks,
+  restoreSkillSymlinks,
+} from '../lib/paths.js'
 import {
   getRegisteredTemplate,
   getTemplateCachePath,
@@ -195,13 +193,14 @@ export async function duplicateTemplate(
   spinner.start(`Duplicating '${sourceName}' → ${dest}...`)
 
   mkdirSync(dest, { recursive: true })
-  cpSync(source.path, dest, {
-    recursive: true,
-    filter: (src) => {
-      const base = basename(src)
-      return base !== '.git'
-    },
-  })
+  // Preserve skill symlinks (.claude/skills/foo → ../.agents/skills/foo)
+  copyTreePreservingSymlinks(source.path, dest, { skipGit: true })
+  const restored = restoreSkillSymlinks(dest)
+  if (restored.length > 0) {
+    p.log.message(
+      `Restored ${restored.length} skill symlink(s) under agent dirs`
+    )
+  }
 
   await initRepo(dest)
   await addAllAndCommit(dest, `Duplicate of template ${sourceName}`)
@@ -266,6 +265,14 @@ export async function extendTemplate(
   } catch (error) {
     spinner.stop('Extend failed')
     throw error
+  }
+
+  // Git may have stored dereferenced skill dirs; re-link to .agents/skills
+  const restored = restoreSkillSymlinks(dest)
+  if (restored.length > 0) {
+    p.log.message(
+      `Restored ${restored.length} skill symlink(s) under agent dirs`
+    )
   }
 
   spinner.stop(`Extended to ${dest}`)

@@ -83,12 +83,12 @@ taito add ~/Work/my-template
 
 ### 7. Apply back
 
-In the **source project**, follow **apply-template**:
+In the **source project**, follow **apply-template** for the template you just registered (same registered name from step 6). If the name is unclear, ask the user. Confirm with `taito list` before applying; if it is not registered, stop and register with `taito add` first.
 
 ```bash
-taito apply plan -t <template-name> --json
+taito apply plan -t <registered-template-name> --json
 # write missing; merge differs carefully
-taito apply finalize -t <template-name>
+taito apply finalize -t <registered-template-name>
 ```
 
 ## Success criteria

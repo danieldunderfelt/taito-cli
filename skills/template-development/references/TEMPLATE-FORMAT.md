@@ -1,5 +1,7 @@
 # Template Format
 
+Schema and layout for Taito project templates. For prompt/`--json`/merge behavior, see [RUNTIME.md](RUNTIME.md) — keep this file schema-focused.
+
 ## Requirements
 
 1. The template directory **must be a git repository**.
@@ -47,7 +49,7 @@ skills = [
 Same types as skills: `string`, `choice`, `boolean`, `array`.
 
 - Prompts support `${OTHER_VAR}` interpolation.
-- Preset answers: `taito new project -t name --config answers.toml`
+- Preset answers: `taito new project -t name --config answers.toml` (also `-c`).
 - Component presets use a `[components]` table in the same file:
 
 ```toml
@@ -59,6 +61,8 @@ architecture_docs = true
 design_skills = false
 ```
 
+**Without a matching `.ejs`:** a variable still appears in `project.meta.toml` / defaults, but **no output file is rewritten**. Templating file content requires `.taito/<output-path>.ejs`.
+
 ### Components
 
 When a component is **false**, its `paths` (globs) and `skills` (relative skill dirs) are omitted from materialization.
@@ -67,6 +71,8 @@ Glob notes:
 
 - `docs/**` matches `docs` and everything under it
 - `docs/*.md` matches one segment only
+
+Components are **include/exclude only**. They are **not** passed into EJS (see below).
 
 ### EJS customization points
 
@@ -77,7 +83,31 @@ Place templates under `.taito/` mirroring the project layout:
 | `.taito/AGENT.md.ejs` | `AGENT.md` |
 | `.taito/docs/PROJECT.md.ejs` | `docs/PROJECT.md` |
 
-Use `<%= VAR %>`, `<% if (...) { %>`, etc. Locals are the variable values from config.
+Use `<%= VAR %>`, `<% if (...) { %>`, etc.
+
+#### EJS locals (unmistakable rule)
+
+| Source | Available in EJS? | Purpose |
+|--------|-------------------|---------|
+| `[variables.*]` | **Yes** — locals are exactly these keys (values after answers/defaults) | Parameterize file content |
+| `[components.*]` | **No** — never usable as `<% if (name) %>` | Include/exclude paths and skills only |
+
+```ejs
+<%# Correct: USE_DOCS is a [variables.USE_DOCS] boolean %>
+<% if (USE_DOCS) { %>
+## Docs
+...
+<% } %>
+
+<%# Wrong: architecture_docs is a component — not an EJS local %>
+<% if (architecture_docs) { %>...<% } %>
+```
+
+**Choose the right gate:**
+
+- Toggle a **section inside a file** → boolean **variable** + EJS `if`
+- Omit a **whole tree or skill package** → **component** with `paths` / `skills`
+- Do both when needed (variable for prose, component for the directory)
 
 **Template mode vs skill mode:**
 
@@ -103,4 +133,5 @@ Example: `~/Work/project-template`
 2. Add `.taito/template.config.toml` with at least `[meta].name`.
 3. Optionally move customization points into `.taito/*.ejs`.
 4. Register: `taito add ~/Work/project-template`
-5. Try: `taito new project /tmp/demo -t project-template`
+5. Try: `taito new project /tmp/demo -t project-template` (prompts) or pass `-c answers.toml`
+6. Smoke templated files: `taito apply cat -t project-template -c answers.toml --file <path>`

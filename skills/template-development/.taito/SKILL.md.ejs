@@ -7,6 +7,8 @@ description: Create and maintain Taito project templates. Use when adding .taito
 
 This skill helps you author **Taito project templates** — git-backed boilerplate that `taito new project` materializes into real projects, with optional customization and updatable origins.
 
+**Do not open the `taito-cli` source repository** to learn format or runtime behavior. Everything you need is in this skill and its references.
+
 ## When to use
 
 <% if (FOCUS_AREAS.includes('authoring')) { %>
@@ -23,6 +25,51 @@ This skill helps you author **Taito project templates** — git-backed boilerpla
 - Understanding `taito update` for projects and child templates
 <% } %>
 
+## Customization not working?
+
+If apply/`new project` still shows defaults (e.g. only `my-project`) or files look unchanged:
+
+1. **Variables without EJS do not rewrite files.** A `[variables.*]` entry with no matching `.taito/**/*.ejs` only affects `.taito/project.meta.toml` and future defaults. Fix: add the EJS mirror → `taito build` → re-test.
+2. **`--json`, `-c`, `cat`, `write`, and `finalize` never prompt.** They use config defaults and/or the answers file. With bare `--json` you will always see defaults.
+3. **Components are not EJS locals.** `<% if (docs) %>` fails if `docs` is only a `[components.*]` key. Use a boolean **variable** for section toggles inside a file; use a **component** to omit whole path trees / skills.
+4. **Smoke test after edits:**
+
+```bash
+# answers.toml — real values, not just defaults
+PROJECT_NAME = "acme"
+USE_TYPESCRIPT = true
+
+[components]
+architecture_docs = true
+
+taito build   # in the template directory
+taito apply cat -t <template> -c answers.toml --file AGENT.md
+```
+
+Runtime contract (prompts, merge, apply vs new): [references/RUNTIME.md](references/RUNTIME.md).
+
+### Prompt vs defaults
+
+| Command | Prompts? |
+|---------|----------|
+| `taito new project` (no `-c`) | **yes** |
+| `taito apply plan` (no `--json`, no `-c`) | **yes** |
+| `apply … --json`, `-c`, `cat` / `write` / `finalize` | **no** — defaults or answers file |
+
+When using `--json` as an agent: **ask the user**, write `answers.toml`, pass `-c`. Follow **apply-template** for the full apply workflow — do not treat bare `--json` / `finalize` as sufficient customization.
+
+## Authoring checklist
+
+Copy-paste when finishing a template:
+
+- [ ] Every user-facing string that should vary has a `[variables.*]` **and** a matching `.taito/**/*.ejs`
+- [ ] Every optional tree or skill package has a `[components.*]` with `paths` / `skills`
+- [ ] Section toggles inside a file → boolean **variables**; whole directories/skills → **components**
+- [ ] EJS uses only variable names as locals — never component names
+- [ ] After edits: `taito build` in the template directory
+- [ ] Smoke: `answers.toml` + `taito apply cat -t <name> -c answers.toml --file <path>` for each templated file
+- [ ] Registered: `taito add <path>` then `taito list`
+
 ## Quick Reference
 
 ```bash
@@ -38,16 +85,19 @@ taito add ~/Work/my-variant --duplicate project-template
 # Extend → git worktree + branch of the base
 taito add ~/Work/my-child --extend project-template
 
-# Initialize a project (path defaults to .)
+# Initialize a project (path defaults to .; prompts unless -c)
 taito new project -t project-template
 taito new project ./acme-app -t project-template
+taito new project -t project-template -c answers.toml
 
 # Pull template updates into a project or child template
 taito update
 
-# Apply onto an existing project (see apply-template skill)
-taito apply plan -t project-template --json
-taito apply finalize -t project-template
+# Apply onto an existing project — use apply-template skill.
+# Agents: collect answers first; --json never prompts.
+taito apply plan -t project-template -c answers.toml --json
+taito apply cat -t project-template -c answers.toml --file AGENT.md
+taito apply finalize -t project-template -c answers.toml
 
 # List / remove
 taito list
@@ -70,7 +120,7 @@ my-template/                    # must be a git repository
 └── .git/
 ```
 
-See [references/TEMPLATE-FORMAT.md](references/TEMPLATE-FORMAT.md) for the full config schema, components, and EJS rules.
+See [references/TEMPLATE-FORMAT.md](references/TEMPLATE-FORMAT.md) for the config schema, components, and EJS rules.
 
 ## Skills inside templates
 
@@ -93,9 +143,11 @@ Details: [references/EXTEND-AND-DUPLICATE.md](references/EXTEND-AND-DUPLICATE.md
 - **Projects** store origin in `.taito/project.meta.toml`. `taito update` re-renders the template at the old and new commits and three-way-merges into the project (git `merge-file`), so local edits are preserved when possible.
 - **Child templates** run a git merge from the base tip.
 
-See [references/UPDATE.md](references/UPDATE.md).
+See [references/UPDATE.md](references/UPDATE.md) and [references/RUNTIME.md](references/RUNTIME.md).
 
 ## Related
 
+- **apply-template** — apply a registered template onto an existing project; answers file + merge rules (use this when `--json` is involved)
 - Skill customization (same EJS + TOML variable system): install `customizable-skills` from this repo
 - Scaffold a new skill package: `taito new skill`
+- Format schema: [TEMPLATE-FORMAT.md](references/TEMPLATE-FORMAT.md) · Runtime: [RUNTIME.md](references/RUNTIME.md)

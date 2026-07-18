@@ -123,7 +123,8 @@ export interface AddOptions {
   dryRun?: boolean
   output?: string // custom output directory
   ref?: string // git ref (branch, tag, commit)
-  agent?: string // specific agent to install for
+  /** Specific agent(s) to link — comma-separated, or `.agents` / claudeCode / etc. */
+  agent?: string
   global?: boolean // install globally instead of locally
   /** Register a duplicate of an existing template at the given path */
   duplicate?: string

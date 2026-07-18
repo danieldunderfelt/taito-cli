@@ -5,10 +5,11 @@ import * as p from '@clack/prompts'
 import { getInstalledSkills, removeSkillFromMetadata } from '../lib/metadata.js'
 import {
   agentConfigs,
-  detectAllAgents,
+  findSkillLinks,
   findWorkspaceRoot,
+  getCanonicalSkillOutputDir,
   getSkillOutputDir,
-  type AgentType,
+  removeSkillLink,
 } from '../lib/paths.js'
 import {
   getRegisteredTemplate,
@@ -35,7 +36,6 @@ async function removeTemplate(
   path: string,
   source: string
 ): Promise<void> {
-  // Cached clones live under ~/.taito/templates/<name>
   const cachePath = getTemplateCachePath(name)
   const isGithubCache = source.startsWith('github:') && path === cachePath
 
@@ -64,73 +64,33 @@ async function removeTemplate(
 
 async function removeSkill(skillName: string): Promise<void> {
   const workspaceRoot = findWorkspaceRoot()
-  const detectedAgents = detectAllAgents(workspaceRoot)
+  const skills = getInstalledSkills('agents', false, workspaceRoot)
+  const canonicalDir = getCanonicalSkillOutputDir(
+    skillName,
+    false,
+    workspaceRoot
+  )
+  const links = findSkillLinks(skillName, workspaceRoot, false)
 
-  if (detectedAgents.length === 0) {
-    p.log.error(
-      `No template named '${skillName}' and no agents detected for skill removal.`
-    )
-    process.exit(1)
-  }
+  const known =
+    skills.some((s) => s.name === skillName) ||
+    existsSync(canonicalDir) ||
+    links.length > 0
 
-  const agentsWithSkill: AgentType[] = []
-
-  for (const agent of detectedAgents) {
-    const skills = getInstalledSkills(agent, false, workspaceRoot)
-    if (skills.some((s) => s.name === skillName)) {
-      agentsWithSkill.push(agent)
-    }
-  }
-
-  if (agentsWithSkill.length === 0) {
+  if (!known) {
     p.log.error(
       `'${skillName}' is not a registered template or installed skill.`
     )
     process.exit(1)
   }
 
-  let targetAgent: AgentType
-
-  if (agentsWithSkill.length === 1) {
-    targetAgent = agentsWithSkill[0]
-    p.log.info(
-      `Found '${skillName}' installed for ${agentConfigs[targetAgent].name}`
-    )
-  } else {
-    p.log.info(`Skill '${skillName}' is installed for multiple agents.`)
-
-    const selected = await p.select({
-      message: 'Which installation do you want to remove?',
-      options: [
-        ...agentsWithSkill.map((a) => ({
-          value: a,
-          label: agentConfigs[a].name,
-        })),
-        {
-          value: 'all',
-          label: 'All agents',
-        },
-      ],
-    })
-
-    if (p.isCancel(selected)) {
-      p.log.info('Removal cancelled.')
-      return
-    }
-
-    if (selected === 'all') {
-      for (const agent of agentsWithSkill) {
-        await removeSingleSkill(skillName, agent, workspaceRoot)
-      }
-      p.log.success(`Removed skill '${skillName}' from all agents`)
-      return
-    }
-
-    targetAgent = selected
-  }
+  const linkNames =
+    links.length > 0
+      ? links.map((a) => agentConfigs[a].name).join(', ')
+      : 'none'
 
   const confirm = await p.confirm({
-    message: `Remove skill '${skillName}' from ${agentConfigs[targetAgent].name}?`,
+    message: `Remove skill '${skillName}' from .agents/skills (symlinks: ${linkNames})?`,
     initialValue: false,
   })
 
@@ -139,27 +99,16 @@ async function removeSkill(skillName: string): Promise<void> {
     return
   }
 
-  await removeSingleSkill(skillName, targetAgent, workspaceRoot)
-  p.log.success(
-    `Removed skill '${skillName}' from ${agentConfigs[targetAgent].name}`
-  )
-}
-
-async function removeSingleSkill(
-  skillName: string,
-  agent: AgentType,
-  workspaceRoot: string
-): Promise<void> {
-  const skillDir = getSkillOutputDir(skillName, agent, false, workspaceRoot)
-
-  if (existsSync(skillDir)) {
-    try {
-      rmSync(skillDir, { recursive: true, force: true })
-    } catch (error) {
-      const err = error as Error
-      throw new Error(`Failed to remove skill directory: ${err.message}`)
-    }
+  for (const agent of links) {
+    const linkPath = getSkillOutputDir(skillName, agent, false, workspaceRoot)
+    removeSkillLink(linkPath)
   }
 
-  removeSkillFromMetadata(skillName, agent, false, workspaceRoot)
+  if (existsSync(canonicalDir)) {
+    rmSync(canonicalDir, { recursive: true, force: true })
+  }
+
+  removeSkillFromMetadata(skillName, 'agents', false, workspaceRoot)
+
+  p.log.success(`Removed skill '${skillName}'`)
 }
