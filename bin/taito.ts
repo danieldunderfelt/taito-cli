@@ -14,6 +14,10 @@ import { listCommand } from '../src/commands/list.js'
 import { newProjectCommand } from '../src/commands/new-project.js'
 import { newSkillCommand } from '../src/commands/new-skill.js'
 import { removeCommand } from '../src/commands/remove.js'
+import {
+  templateInitCommand,
+  templateScanCommand,
+} from '../src/commands/template.js'
 import { updateCommand } from '../src/commands/update.js'
 
 // Version is injected at build time via --define
@@ -208,6 +212,69 @@ applyCmd
     await applyFinalizeCommand(path ?? '.', {
       template: options.template,
       config: options.config,
+      force: options.force,
+      json: options.json,
+    })
+  })
+
+const templateCmd = program
+  .command('template')
+  .description(
+    'Scan a project for template candidates and scaffold a new template'
+  )
+
+templateCmd
+  .command('scan [path]')
+  .description(
+    'List common agent/config files and exclusion patterns (baseline only; agent discovers the rest)'
+  )
+  .option('--json', 'Machine-readable JSON output')
+  .option(
+    '--out-manifest <path>',
+    'Write a JSON manifest of baseline common files'
+  )
+  .action(async (path: string | undefined, options) => {
+    await templateScanCommand(path ?? '.', {
+      json: options.json,
+      outManifest: options.outManifest,
+    })
+  })
+
+templateCmd
+  .command('init <dest>')
+  .description(
+    'Copy selected files into a new template folder with template.config.toml + git'
+  )
+  .option('--from <path>', 'Source project path', '.')
+  .option('-n, --name <name>', 'Template name (default: dest folder name)')
+  .option('--description <text>', 'Template description')
+  .option(
+    '-m, --manifest <path>',
+    'JSON manifest with { "files": ["..."] }'
+  )
+  .option(
+    '-i, --include <paths>',
+    'Comma-separated relative paths to include (repeatable)',
+    (value: string, prev: string[]) => {
+      prev.push(value)
+      return prev
+    },
+    [] as string[]
+  )
+  .option(
+    '--baseline',
+    'Include only the scan baseline common files (prefer an agent-built --manifest)'
+  )
+  .option('-f, --force', 'Allow non-empty destination')
+  .option('--json', 'Machine-readable JSON output')
+  .action(async (dest: string, options) => {
+    await templateInitCommand(dest, {
+      from: options.from,
+      name: options.name,
+      description: options.description,
+      manifest: options.manifest,
+      include: options.include,
+      baseline: options.baseline,
       force: options.force,
       json: options.json,
     })

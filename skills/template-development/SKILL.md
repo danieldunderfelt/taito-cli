@@ -14,6 +14,7 @@ This skill helps you author **Taito project templates** — git-backed boilerpla
 - Defining optional components (files / skills to include or skip)
 - Choosing duplicate vs extend for template variants
 - Understanding `taito update` for projects and child templates
+- Generalizing files after `taito template init` / the **create-template** skill
 
 ## Quick Reference
 

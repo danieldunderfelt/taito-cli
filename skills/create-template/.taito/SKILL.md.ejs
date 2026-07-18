@@ -1,0 +1,35 @@
+---
+name: create-template
+description: Create a Taito project template from the current codebase. Use when the user wants to extract reusable scaffolding into a new template, steered by their description of what the template should contain. Discover files in the project yourself, confirm the list with the user, generalize, register with taito, and apply the template back to the source project.
+---
+
+# Create Template
+
+Extract a **Taito project template** from the current project based on what the user asked for. You own file discovery. `taito template scan` is only a **baseline** of common agent/config files plus **exclusions**.
+
+Preferred agent: **<%= PREFERRED_AGENT %>**. Suggested template destination base: `<%= DEFAULT_DEST_HINT %>`.
+
+Use **template-development** for config/EJS, and **apply-template** for apply-back.
+
+## Workflow
+
+1. **Explore** the project guided by the user’s template description (main source of the file list)
+2. **Optional scan** — `taito template scan . --json` for baseline + exclusions
+3. **Ask the user** which files to include
+4. **Init** — `taito template init <dest> --manifest ./manifest.json`
+5. **Generalize** — see [references/GENERALIZE.md](references/GENERALIZE.md)
+6. **Register** — `taito add <dest>`
+7. **Apply back** — apply-template skill (`plan` → merge/write → `finalize`)
+
+## CLI
+
+```bash
+taito template scan . --json
+taito template init <%= DEFAULT_DEST_HINT %>/my-template --manifest ./manifest.json
+taito add <%= DEFAULT_DEST_HINT %>/my-template
+```
+
+## References
+
+- [references/GENERALIZE.md](references/GENERALIZE.md)
+- [references/CLI.md](references/CLI.md)

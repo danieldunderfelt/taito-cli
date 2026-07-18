@@ -14,9 +14,15 @@ export * from './lib/git.js'
 export * from './lib/glob.js'
 export * from './lib/template-materialize.js'
 export * from './lib/apply-plan.js'
+export * from './lib/template-scan.js'
+export * from './lib/template-init.js'
 
 // Re-export commands
 export { addCommand, installSingleSkill } from './commands/add.js'
+export {
+  templateScanCommand,
+  templateInitCommand,
+} from './commands/template.js'
 export {
   applyPlanCommand,
   applyCatCommand,

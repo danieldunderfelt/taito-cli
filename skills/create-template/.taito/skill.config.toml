@@ -1,0 +1,26 @@
+[meta]
+name = "create-template"
+version = "1.0.0"
+description = "Create a Taito project template from the current codebase"
+
+[variables.PREFERRED_AGENT]
+type = "choice"
+prompt = "Which AI agent do you primarily use?"
+default = "cursor"
+
+  [[variables.PREFERRED_AGENT.options]]
+  value = "cursor"
+  label = "Cursor"
+
+  [[variables.PREFERRED_AGENT.options]]
+  value = "claude-code"
+  label = "Claude Code"
+
+  [[variables.PREFERRED_AGENT.options]]
+  value = "codex"
+  label = "Codex"
+
+[variables.DEFAULT_DEST_HINT]
+type = "string"
+prompt = "Typical relative/absolute path hint for new templates?"
+default = "~/Work"

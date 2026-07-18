@@ -1,6 +1,6 @@
 {
   "name": "taito-cli",
-    "version": "1.3.0",
+    "version": "1.4.0",
   "description": "CLI for initializing projects from customizable templates and managing customizable Agent Skills.",
   "type": "module",
   "license": "MIT",

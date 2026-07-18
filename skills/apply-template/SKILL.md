@@ -13,6 +13,7 @@ Bring an **existing project** up to a registered Taito template without wiping p
 - Template has stubs (e.g. `docs/PROJECT.md`) but the project already has rich versions
 - Need to merge agent docs (`CLAUDE.md`, `AGENT.md`) rather than replace them
 - Want one-by-one control instead of `taito new project` into a non-empty folder
+- Final step of **create-template**: apply a freshly extracted template back onto its source project
 
 ## Prerequisites
 

@@ -125,6 +125,28 @@ Scaffold a customizable skill (`SKILL.md` + `.taito/skill.config.toml` + `.taito
 
 Pull updates from the base template into a **project** or **child template** (defaults to `.`).
 
+### `taito template` — extract a template from a project
+
+`taito template scan` lists a **small baseline** of common agent/config files plus exclusion patterns. The agent (via the create-template skill) discovers the full file list from the user’s description of the template.
+
+```bash
+# Baseline common files + exclusions (not a full inventory)
+taito template scan . --json
+
+# After the agent proposes files and the user approves, init from a manifest:
+taito template init ~/Work/my-template --manifest ./manifest.json
+
+# Generalize stubs/EJS (create-template + template-development), then:
+taito add ~/Work/my-template
+# Apply back with `taito apply` / apply-template skill
+```
+
+Agent skill:
+
+```bash
+taito add danieldunderfelt/taito-cli/skills/create-template
+```
+
 ### `taito apply` — adopt a template on an existing project
 
 For repos that already have content, use file-by-file apply instead of `taito new project`:
