@@ -1,4 +1,5 @@
 import * as p from '@clack/prompts'
+
 import type { SkillConfig, Variable, VariableValues } from '../types.js'
 
 // Module-level cache for current session
@@ -73,6 +74,11 @@ function interpolateVariable(
         ...variable,
         prompt: interpolatedPrompt,
       }
+    default: {
+      throw new Error(
+        `Unhandled variable type: ${(variable as { type: string }).type}`
+      )
+    }
   }
 }
 
@@ -171,10 +177,14 @@ async function promptString(
     defaultValue: defaultValue,
     validate: variable.validate
       ? (value) => {
+          if (value === undefined) {
+            return 'Value is required'
+          }
           const regex = new RegExp(variable.validate!)
           if (!regex.test(value)) {
             return `Value must match pattern: ${variable.validate}`
           }
+          return undefined
         }
       : undefined,
   })
@@ -249,7 +259,7 @@ async function promptArray(
   const defaultStr = defaultArray?.join(', ') ?? ''
 
   const result = await p.text({
-    message: `${variable.prompt}`,
+    message: variable.prompt,
     placeholder: defaultStr || 'value1, value2, value3',
     defaultValue: defaultStr,
   })

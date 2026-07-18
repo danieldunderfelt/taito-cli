@@ -1,5 +1,7 @@
 import { existsSync, rmSync } from 'node:fs'
+
 import * as p from '@clack/prompts'
+
 import { getInstalledSkills, removeSkillFromMetadata } from '../lib/metadata.js'
 import {
   agentConfigs,
@@ -75,7 +77,7 @@ export async function removeCommand(skillName: string): Promise<void> {
       return
     }
 
-    targetAgent = selected as AgentType
+    targetAgent = selected
   }
 
   // Confirm removal

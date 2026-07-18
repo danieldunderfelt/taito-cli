@@ -1,5 +1,7 @@
 import { existsSync } from 'node:fs'
+
 import * as p from '@clack/prompts'
+
 import { getInstalledSkills } from '../lib/metadata.js'
 import {
   agentConfigs,

@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
+
 import type { DiscoveredSkill } from '../types.js'
 import { isCustomizableSkill } from './paths.js'
 

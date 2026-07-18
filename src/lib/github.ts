@@ -3,7 +3,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
+
 import { extract } from 'tar'
+
 import type { SkillSource } from '../types.js'
 
 /**
@@ -85,7 +87,6 @@ export async function fetchFromGitHub(source: SkillSource): Promise<string> {
     await pipeline(Readable.fromWeb(response.body as never), writeStream)
 
     // Extract tarball
-    const extractDir = join(tempDir, 'extracted')
     await extract({
       file: tarballPath,
       cwd: tempDir,

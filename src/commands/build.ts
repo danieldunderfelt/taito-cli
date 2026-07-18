@@ -1,6 +1,8 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
+
 import * as p from '@clack/prompts'
+
 import { getDefaultValues, parseSkillConfig } from '../lib/config.js'
 import { getSkillConfigPath, isCustomizableSkill } from '../lib/paths.js'
 import { renderWithDefaults } from '../lib/render.js'

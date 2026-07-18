@@ -7,7 +7,9 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
+
 import ejs from 'ejs'
+
 import type { VariableValues } from '../types.js'
 
 /**

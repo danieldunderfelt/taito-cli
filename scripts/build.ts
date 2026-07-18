@@ -59,7 +59,7 @@ for (const target of targets) {
   } else {
     console.error(`  ✗ Failed to build for ${platform}:`)
     for (const log of result.logs) {
-      console.error(`    ${log}`)
+      console.error(`    ${log.message}`)
     }
     process.exit(1)
   }

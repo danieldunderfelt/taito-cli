@@ -7,7 +7,9 @@ import {
   statSync,
 } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
+
 import * as p from '@clack/prompts'
+
 import {
   getDefaultValues,
   parsePresetConfig,
@@ -152,7 +154,7 @@ export async function addCommand(
             process.exit(0)
           }
 
-          agent = selected as AgentType
+          agent = selected
         }
       }
 
@@ -179,7 +181,7 @@ export async function addCommand(
           process.exit(0)
         }
 
-        skillsToInstall = selected as DiscoveredSkill[]
+        skillsToInstall = selected
       }
 
       // Install each selected skill

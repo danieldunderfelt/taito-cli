@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { Command } from 'commander'
+
 import { addCommand } from '../src/commands/add.js'
 import { buildCommand } from '../src/commands/build.js'
 import { listCommand } from '../src/commands/list.js'

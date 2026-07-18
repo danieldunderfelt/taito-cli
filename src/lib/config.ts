@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs'
+
 import { parse as parseToml } from 'smol-toml'
+
 import type {
   ChoiceOption,
   SkillConfig,

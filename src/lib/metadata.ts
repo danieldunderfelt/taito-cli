@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
+
 import type { InstalledSkill, TaitoMetadata, VariableValues } from '../types.js'
 import { getMetadataPath, type AgentType } from './paths.js'
 
