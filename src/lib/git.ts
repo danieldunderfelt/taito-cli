@@ -186,6 +186,30 @@ export async function abortMerge(dir: string): Promise<void> {
   await runGit(['merge', '--abort'], dir)
 }
 
+/**
+ * Preview a merge of `theirs` into HEAD without touching the working tree
+ * (git merge-tree). Returns the files that would conflict.
+ */
+export async function mergeTreeDryRun(
+  dir: string,
+  theirs: string
+): Promise<{ clean: boolean; conflicts: string[] }> {
+  const { stdout, stderr, exitCode } = await runGit(
+    ['merge-tree', '--write-tree', 'HEAD', theirs],
+    dir
+  )
+  // 0 = clean, 1 = conflicts, anything else = error
+  if (exitCode !== 0 && exitCode !== 1) {
+    throw new GitError('Failed to preview merge', stderr)
+  }
+  const conflicts = stdout
+    .split('\n')
+    .slice(1) // first line is the tree OID
+    .map((line) => /^\d+ [0-9a-f]+ [1-3]\t(.+)$/.exec(line)?.[1])
+    .filter((p): p is string => Boolean(p))
+  return { clean: exitCode === 0, conflicts: [...new Set(conflicts)] }
+}
+
 export async function checkoutFile(
   dir: string,
   file: string,
@@ -198,7 +222,14 @@ export async function checkoutFile(
   if (exitCode !== 0) {
     throw new GitError(`Failed to checkout ${which} for ${file}`, stderr)
   }
-  await runGit(['add', file], dir)
+  await stageFile(dir, file)
+}
+
+export async function stageFile(dir: string, file: string): Promise<void> {
+  const { stderr, exitCode } = await runGit(['add', '--', file], dir)
+  if (exitCode !== 0) {
+    throw new GitError(`Failed to stage ${file}`, stderr)
+  }
 }
 
 export async function continueMerge(dir: string): Promise<void> {
@@ -214,14 +245,22 @@ export async function continueMerge(dir: string): Promise<void> {
 /**
  * Three-way merge a single file using git merge-file.
  * Writes result into `oursPath`. Returns true if clean, false if conflicts remain.
+ * Labels are embedded in conflict markers (<<<<<<< <ours> … >>>>>>> <theirs>).
  */
 export async function mergeFile(
   oursPath: string,
   basePath: string,
-  theirsPath: string
+  theirsPath: string,
+  labels?: { ours?: string; base?: string; theirs?: string }
 ): Promise<boolean> {
   const { exitCode } = await runGit([
     'merge-file',
+    '-L',
+    labels?.ours ?? 'ours',
+    '-L',
+    labels?.base ?? 'base',
+    '-L',
+    labels?.theirs ?? 'theirs',
     oursPath,
     basePath,
     theirsPath,

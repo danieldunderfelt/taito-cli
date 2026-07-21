@@ -141,6 +141,25 @@ Scaffold a customizable skill (`SKILL.md` + `.taito/skill.config.toml` + `.taito
 
 Pull updates from the base template into a **project** or **child template** (defaults to `.`).
 
+For projects, taito renders the template at the recorded base commit and at `HEAD`,
+then three-way merges every file against your project:
+
+- Files you never touched are updated silently; non-overlapping changes from both
+  sides are auto-merged and reported.
+- When both sides changed the same lines, taito shows each conflicting chunk and
+  asks which version to keep (project, template, both, or conflict markers).
+- Files the template deleted but you modified, and files you deleted but the
+  template changed, are asked about instead of silently kept.
+- Cancel (Esc) aborts without writing anything. Non-interactive runs apply only
+  conflict-free changes and list the rest for a later interactive run.
+
+For child templates (real `git merge`), conflicts can be resolved chunk by chunk,
+per side, or left as markers.
+
+Use `taito update --dry-run` to preview what an update would change — which files
+would be written, auto-merged, deleted, or need your resolution — without writing
+anything.
+
 ### `taito template` — extract a template from a project
 
 `taito template scan` lists a **small baseline** of common agent/config files plus exclusion patterns. The agent (via the create-template skill) discovers the full file list from the user’s description of the template.

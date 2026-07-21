@@ -116,8 +116,9 @@ program
   .description(
     'Pull updates from the base template into a project or child template'
   )
-  .action(async (path: string | undefined) => {
-    await updateCommand(path ?? '.')
+  .option('-d, --dry-run', 'Preview the update without writing any files')
+  .action(async (path: string | undefined, options) => {
+    await updateCommand(path ?? '.', { dryRun: options.dryRun })
   })
 
 const applyCmd = program

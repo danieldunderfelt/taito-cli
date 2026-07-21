@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import * as p from '@clack/prompts'
@@ -20,6 +20,11 @@ import {
 import { getTemplateConfigPath } from '../lib/classify.js'
 import { expandPath } from '../lib/github.js'
 import { revParse } from '../lib/git.js'
+import {
+  isInteractive,
+  looksBinary,
+  showDiff,
+} from '../lib/merge-conflicts.js'
 import {
   agentConfigs,
   getDefaultAgentSelection,
@@ -117,12 +122,60 @@ export async function applyWriteCommand(
   )
 
   try {
-    const result = writeApplyFile(
-      renderedDir,
-      projectPath,
-      options.file,
-      Boolean(options.force)
-    )
+    const src = join(renderedDir, options.file)
+    const dest = join(projectPath, options.file)
+
+    if (!existsSync(src)) {
+      throw new Error(`Template file not found: ${options.file}`)
+    }
+
+    let result: 'written' | 'skipped'
+
+    if (existsSync(dest) && !options.force) {
+      const srcBuf = readFileSync(src)
+      const destBuf = readFileSync(dest)
+
+      if (srcBuf.equals(destBuf)) {
+        result = 'skipped'
+      } else if (options.json || !isInteractive()) {
+        throw new Error(
+          `Project already has ${options.file} with different content. ` +
+            'Use --force to overwrite, or merge manually after `taito apply cat`.'
+        )
+      } else {
+        if (looksBinary(srcBuf) || looksBinary(destBuf)) {
+          p.log.message(`${options.file}: binary file, diff not shown`)
+        } else {
+          showDiff(
+            `${options.file}: project vs template`,
+            destBuf.toString('utf-8'),
+            srcBuf.toString('utf-8'),
+            { ours: 'project', theirs: 'template' }
+          )
+        }
+        const choice = await p.select({
+          message: `${options.file} differs from the template. What do you want to do?`,
+          options: [
+            { value: 'keep', label: 'Keep project version (skip)' },
+            { value: 'overwrite', label: 'Overwrite with template version' },
+          ],
+        })
+        if (p.isCancel(choice) || choice === 'keep') {
+          p.log.info(`Kept project version of ${options.file}`)
+          return
+        }
+        writeFileSync(dest, srcBuf)
+        result = 'written'
+      }
+    } else {
+      result = writeApplyFile(
+        renderedDir,
+        projectPath,
+        options.file,
+        Boolean(options.force)
+      )
+    }
+
     if (options.json) {
       console.log(JSON.stringify({ path: options.file, result }))
     } else if (result === 'written') {

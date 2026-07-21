@@ -36,7 +36,7 @@
   "scripts": {
     "dev": "bun run bin/taito.ts",
     "build": "bun run scripts/build.ts",
-    "build:local": "bun build --compile ./bin/taito.ts --outfile ./dist/taito",
+    "build:local": "bun run scripts/build-local.ts",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "format": "oxfmt",
